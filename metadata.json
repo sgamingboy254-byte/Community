@@ -1,0 +1,6 @@
+{
+  "name": "VC Community",
+  "description": "Multiplayer community network with role-based access, VC currency wallet, live trends graph, community & personal chat, and theme personalization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
