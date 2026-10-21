@@ -10,6 +10,7 @@ export interface User {
   status: 'online' | 'away' | 'offline';
   joinedAt: string;
   bio?: string;
+  lastSeen?: number;
 }
 
 export interface ChatMessage {

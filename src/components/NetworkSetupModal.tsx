@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Smartphone, Wifi, Radio, Globe, Shield, Sparkles, Check, ArrowRight } from 'lucide-react';
+import { Smartphone, Wifi, Radio, Globe, Shield, Sparkles, Check, ArrowRight, Gauge, Cpu } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 export type NetworkChoice = 'enable' | 'for_this_time' | 'not_now';
@@ -43,14 +43,14 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg sm:text-xl font-extrabold tracking-tight">
-                  Independent Network
+                  Independent User Network
                 </h2>
                 <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/30">
-                  Phone Direct
+                  Mobile Data / Internet
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Independent mobile device connectivity setup
+                User internet data routing • Throttled & Battery Protected
               </p>
             </div>
           </div>
@@ -58,19 +58,28 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
           {/* Explanatory Callout */}
           <div className="mb-5 p-3.5 rounded-2xl bg-white/40 dark:bg-zinc-800/40 border border-white/40 dark:border-white/10 text-xs text-zinc-600 dark:text-zinc-300 space-y-2">
             <p className="leading-relaxed">
-              This app is engineered with <strong className="text-zinc-900 dark:text-white">independent network routing</strong>. It connects directly using your phone&apos;s internet to link seamlessly with the live ecosystem (AI Studio, GitHub repository & real-time community peers).
+              Connect directly using your <strong className="text-zinc-900 dark:text-white">user mobile data / internet network</strong> to link with the online ecosystem (AI Studio, GitHub repository & real-time community peers).
             </p>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono pt-1 text-zinc-500 dark:text-zinc-400">
+            
+            {/* Loop-Protection & Data Saving Guarantee Badge */}
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 flex items-center gap-2 text-[11px] font-medium">
+              <Shield className="w-4 h-4 shrink-0 text-emerald-500" />
+              <span>
+                <strong>Loop-Protected:</strong> Calibrated strictly to 11-second intervals with zero rapid syncing storms.
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono pt-0.5 text-zinc-500 dark:text-zinc-400">
               <span className="inline-flex items-center gap-1">
-                <Globe className="w-3 h-3 text-cyan-500" /> Direct Phone Network
+                <Smartphone className="w-3 h-3 text-cyan-500" /> Mobile / User Data
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-500" /> AI Studio Ecosystem
+                <Cpu className="w-3 h-3 text-indigo-500" /> AI Studio Ecosystem
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
-                <Shield className="w-3 h-3 text-emerald-500" /> Real-Time Sync
+                <Globe className="w-3 h-3 text-emerald-500" /> GitHub Direct Sync
               </span>
             </div>
           </div>
@@ -95,7 +104,7 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
                     </span>
                   </div>
                   <div className="text-[11px] text-white/80">
-                    Always use phone network to connect with AI Studio & GitHub ecosystem
+                    Use user mobile data to connect with AI Studio & GitHub ecosystem (saved)
                   </div>
                 </div>
               </div>
@@ -117,7 +126,7 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
                     Option 2: For This Time
                   </div>
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Enable phone network for current session only (no permanent save)
+                    Use mobile internet data for current session only (cleans up on close)
                   </div>
                 </div>
               </div>
@@ -139,7 +148,7 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
                     Option 3: Not Now
                   </div>
                   <div className="text-[11px] text-zinc-400">
-                    Operate in independent local offline mode without remote network
+                    Operate in independent local offline mode without remote network usage
                   </div>
                 </div>
               </div>
@@ -148,7 +157,7 @@ export const NetworkSetupModal: React.FC<NetworkSetupModalProps> = ({ isOpen, on
           </div>
 
           <div className="text-[10px] text-zinc-400 text-center font-mono">
-            You can change this network preference anytime from Settings or Top Navigation.
+            You can reconfigure your network mode anytime from the top presence ribbon.
           </div>
         </motion.div>
       </div>

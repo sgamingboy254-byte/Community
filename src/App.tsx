@@ -101,7 +101,7 @@ export default function App() {
           const me = data.members.find((m: User) => m.id === storage.getCurrentUser()?.id);
           if (me) {
             setCurrentUser(me);
-            storage.setCurrentUser(me);
+            localStorage.setItem('vc_current_user', JSON.stringify(me));
           }
         }
       }
