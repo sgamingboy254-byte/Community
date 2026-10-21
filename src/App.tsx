@@ -12,10 +12,38 @@ import { SettingsModal } from './components/SettingsModal';
 import { AccountsModal } from './components/AccountsModal';
 import { SuperAdminModal } from './components/SuperAdminModal';
 import { StartupScreen } from './components/StartupScreen';
+import { NetworkSetupModal, NetworkChoice } from './components/NetworkSetupModal';
 import { sound } from './utils/audio';
 
 export default function App() {
-  const [showStartupScreen, setShowStartupScreen] = useState(true);
+  // Network preference: 'enable' | 'for_this_time' | 'not_now'
+  const [networkMode, setNetworkMode] = useState<NetworkChoice>(() => {
+    if (typeof window === 'undefined') return 'enable';
+    const permanent = localStorage.getItem('vc_network_choice') as NetworkChoice | null;
+    if (permanent) return permanent;
+    const session = sessionStorage.getItem('vc_network_choice') as NetworkChoice | null;
+    if (session) return session;
+    return 'enable';
+  });
+
+  // Show network prompt before the opening sound & logo screen
+  const [showNetworkPrompt, setShowNetworkPrompt] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const permanent = localStorage.getItem('vc_network_choice');
+    const session = sessionStorage.getItem('vc_network_choice');
+    return !permanent && !session;
+  });
+
+  const [showStartupScreen, setShowStartupScreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const permanent = localStorage.getItem('vc_network_choice');
+    const session = sessionStorage.getItem('vc_network_choice');
+    // If user hasn't made their network choice yet, hold startup screen until they choose Option 1 or 2
+    if (!permanent && !session) return false;
+    if (permanent === 'not_now' || session === 'not_now') return false;
+    return true;
+  });
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [members, setMembers] = useState<User[]>([]);
   const [communityMessages, setCommunityMessages] = useState<ChatMessage[]>([]);
@@ -167,6 +195,25 @@ export default function App() {
     );
   };
 
+  const handleNetworkChoice = (choice: NetworkChoice) => {
+    setNetworkMode(choice);
+    setShowNetworkPrompt(false);
+
+    if (choice === 'enable') {
+      localStorage.setItem('vc_network_choice', 'enable');
+      network.reconnect();
+      setShowStartupScreen(true);
+    } else if (choice === 'for_this_time') {
+      sessionStorage.setItem('vc_network_choice', 'for_this_time');
+      network.reconnect();
+      setShowStartupScreen(true);
+    } else {
+      sessionStorage.setItem('vc_network_choice', 'not_now');
+      network.disconnect();
+      setShowStartupScreen(false);
+    }
+  };
+
   // Compute how many real people are currently online
   const onlineCount = useMemo(() => {
     return members.filter((m) => m.status === 'online').length;
@@ -237,11 +284,15 @@ export default function App() {
           <div className="flex items-center gap-2 max-w-7xl mx-auto w-full px-1">
             <span
               className={`w-2 h-2 rounded-full ${
-                isLiveConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                isLiveConnected && networkMode !== 'not_now' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
             <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-              {isLiveConnected ? 'Online Server Connected' : 'Connecting to Live Server...'}
+              {networkMode === 'not_now'
+                ? 'Independent Local Mode'
+                : isLiveConnected
+                ? 'Online Server Connected'
+                : 'Connecting to Live Server...'}
             </span>
             <span className="text-zinc-400">·</span>
             <span className="text-zinc-600 dark:text-zinc-400">
@@ -251,6 +302,23 @@ export default function App() {
             <span className="hidden sm:inline text-zinc-400 font-mono">
               11s live presence tracker active (No bots)
             </span>
+
+            {/* Independent Phone Network Status Button */}
+            <button
+              onClick={() => setShowNetworkPrompt(true)}
+              className="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 text-[10px] font-mono text-zinc-600 dark:text-zinc-300 transition-colors shadow-2xs cursor-pointer"
+              title="Click to configure independent phone network connection"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${networkMode === 'not_now' ? 'bg-zinc-400' : 'bg-cyan-500'}`} />
+              <span className="hidden xs:inline">
+                {networkMode === 'not_now'
+                  ? 'Local Mode (Offline)'
+                  : networkMode === 'for_this_time'
+                  ? 'Phone Direct (Session)'
+                  : 'Phone Direct Network'}
+              </span>
+              <span className="xs:hidden">Network</span>
+            </button>
           </div>
         </div>
       )}
@@ -364,7 +432,13 @@ export default function App() {
         />
       )}
 
-      {/* Windows XP Style Startup Splash & Music */}
+      {/* Independent Phone Network Access Prompt (Shows before opening sound and logo) */}
+      <NetworkSetupModal
+        isOpen={showNetworkPrompt}
+        onSelect={handleNetworkChoice}
+      />
+
+      {/* Windows 7 Professional Style Startup Splash & Music */}
       <StartupScreen
         isOpen={showStartupScreen}
         onFinish={() => {

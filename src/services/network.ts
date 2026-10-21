@@ -189,6 +189,26 @@ class NetworkService {
       graphPoints: [],
     };
   }
+
+  public reconnect() {
+    this.disconnect();
+    this.connect();
+  }
+
+  public disconnect() {
+    this.stopHeartbeat();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch {}
+      this.ws = null;
+    }
+    this.notify('connection_change', { status: 'disconnected' });
+  }
 }
 
 export const network = new NetworkService();
