@@ -7,10 +7,29 @@
       "role": "power",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
       "walletBalance": 10000,
-      "status": "online",
+      "status": "offline",
       "lastSeen": 1792658641809,
       "joinedAt": "2026-10-22",
       "bio": "Real verified member in VC Community network."
+    },
+    {
+      "id": "friend-mobile-node-999",
+      "name": "Far Friend",
+      "communityCode": "80504",
+      "role": "normal",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
+      "walletBalance": 10000,
+      "status": "online",
+      "lastSeen": 1792686883023,
+      "joinedAt": "2026-10-22",
+      "bio": "Real verified member in VC Community network."
+    },
+    {
+      "id": "second-phone-friend",
+      "name": "Phone Peer 2",
+      "role": "power",
+      "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&h=120&fit=crop",
+      "status": "offline"
     }
   ],
   "communityMessages": [
@@ -32,6 +51,15 @@
       "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
       "text": "Rapid millisecond test",
       "timestamp": 1792658641810
+    },
+    {
+      "id": "test-hop-msg-1",
+      "senderId": "friend-mobile-node-999",
+      "senderName": "Far Friend",
+      "senderRole": "normal",
+      "senderAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
+      "text": "Hello across phone connection!",
+      "timestamp": 1792686873603
     }
   ],
   "directMessages": [],

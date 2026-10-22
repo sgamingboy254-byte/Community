@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Download,
   Smartphone,
-  Volume2
+  Volume2,
+  Radio
 } from 'lucide-react';
 import { User, UserRole, ThemeMode, NeonColor } from '../types';
 import { getRoleTitle } from '../services/storage';
@@ -27,6 +28,7 @@ interface TopNavProps {
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenSuperAdminModal: () => void;
+  onOpenPhoneMesh?: () => void;
   onOpenInstallModal?: () => void;
   onPlayStartupSound?: () => void;
   onSignOut: () => void;
@@ -41,6 +43,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenSettings,
   onOpenAccounts,
   onOpenSuperAdminModal,
+  onOpenPhoneMesh,
   onOpenInstallModal,
   onPlayStartupSound,
   onSignOut,
@@ -166,13 +169,31 @@ export const TopNav: React.FC<TopNavProps> = ({
             </button>
           </nav>
 
-          {/* Top Right Profile Picture button */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => {
-                setMenuOpen(!menuOpen);
-                sound.playReceive();
-              }}
+          {/* Top Right Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Phone Mesh Live Network Status Trigger */}
+            {onOpenPhoneMesh && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenPhoneMesh();
+                  sound.playPop();
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                title="Phone Mesh: Messages travel across all connected phones"
+              >
+                <Radio className="w-3.5 h-3.5 animate-pulse text-cyan-500" />
+                <span className="hidden sm:inline">Phone Mesh</span>
+              </button>
+            )}
+
+            {/* Profile Picture button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setMenuOpen(!menuOpen);
+                  sound.playReceive();
+                }}
               className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-indigo-500/40 transition-all focus:outline-none"
               aria-label="User Profile Menu"
             >
@@ -261,6 +282,28 @@ export const TopNav: React.FC<TopNavProps> = ({
                         </div>
                         <ChevronRight className="w-4 h-4 text-zinc-400" />
                       </button>
+
+                      {onOpenPhoneMesh && (
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            onOpenPhoneMesh();
+                            sound.playPop();
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                              <Radio className="w-4 h-4 animate-pulse" />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-zinc-900 dark:text-white">Phone Mesh Network</div>
+                              <div className="text-[11px] text-zinc-400">All phones linked from far</div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-zinc-400" />
+                        </button>
+                      )}
 
                       <button
                         onClick={() => {
@@ -399,6 +442,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 </>
               )}
             </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>

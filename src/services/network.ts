@@ -8,10 +8,12 @@ class NetworkService {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private currentUserId: string | null = null;
+  private currentUser: User | null = null;
   private isConnecting = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
   private lastHeartbeatTime = 0;
+  private lastSyncPeersTime = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -21,7 +23,7 @@ class NetworkService {
     }
   }
 
-  // Check if user has opted into direct network usage (default true unless explicitly set to 'not_now')
+  // Check if user has opted into direct network usage
   public isNetworkAllowed(): boolean {
     if (typeof window === 'undefined') return true;
     const permanent = localStorage.getItem('vc_network_choice');
@@ -32,15 +34,20 @@ class NetworkService {
   }
 
   // Get network connection telemetry (mobile data vs wifi)
-  public getConnectionInfo(): { type: string; isMobile: boolean; status: string } {
+  public getConnectionInfo(): { type: string; isMobile: boolean; status: string; deviceLabel: string } {
     if (typeof window === 'undefined') {
-      return { type: 'unknown', isMobile: false, status: 'idle' };
+      return { type: 'unknown', isMobile: false, status: 'idle', deviceLabel: 'Web Node' };
     }
 
     const nav = navigator as any;
     const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-    const effectiveType = conn?.effectiveType || conn?.type || 'active';
+    const effectiveType = conn?.effectiveType || conn?.type || '4G/5G';
     const isMobile = conn?.type === 'cellular' || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    const deviceLabel = /iPhone/i.test(navigator.userAgent)
+      ? 'iPhone Mobile Node'
+      : /Android/i.test(navigator.userAgent)
+      ? 'Android Mobile Node'
+      : 'Device Node';
 
     const isConnected = this.ws && this.ws.readyState === WebSocket.OPEN;
 
@@ -48,19 +55,18 @@ class NetworkService {
       type: effectiveType,
       isMobile,
       status: isConnected ? 'connected' : this.isConnecting ? 'connecting' : 'standby',
+      deviceLabel,
     };
   }
 
   public connect() {
     if (typeof window === 'undefined') return;
 
-    // Guard: Do not connect if user explicitly selected not_now
     if (!this.isNetworkAllowed()) {
       this.disconnect();
       return;
     }
 
-    // Avoid duplicate connection attempts
     if (this.isConnecting) return;
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
@@ -77,6 +83,7 @@ class NetworkService {
         this.isConnecting = false;
         this.reconnectAttempts = 0;
         this.startHeartbeat();
+        this.syncPeers();
         this.notify('connection_change', { status: 'connected' });
       };
 
@@ -111,7 +118,6 @@ class NetworkService {
     if (this.reconnectTimeout) return;
 
     this.reconnectAttempts += 1;
-    // Fast reconnect: 500ms, 1000ms, 1500ms...
     const delay = Math.min(3000, 500 + this.reconnectAttempts * 400);
 
     this.reconnectTimeout = setTimeout(() => {
@@ -122,6 +128,15 @@ class NetworkService {
     }, delay);
   }
 
+  public setCurrentUser(user: User | null) {
+    this.currentUser = user;
+    this.currentUserId = user?.id || null;
+    if (user && this.isNetworkAllowed()) {
+      this.sendHeartbeat();
+      this.syncPeers();
+    }
+  }
+
   public setUserId(userId: string | null) {
     this.currentUserId = userId;
     if (userId && this.isNetworkAllowed()) {
@@ -129,13 +144,13 @@ class NetworkService {
     }
   }
 
-  // Rapid millisecond real-time heartbeat (1.5 seconds instead of slow 12s pause)
+  // Rapid millisecond real-time heartbeat (1.5 seconds)
   private startHeartbeat() {
     this.stopHeartbeat();
     this.sendHeartbeat();
     this.heartbeatInterval = setInterval(() => {
       this.sendHeartbeat();
-    }, 1500); // 1.5 second rapid real-time sync
+    }, 1500);
   }
 
   private stopHeartbeat() {
@@ -154,57 +169,104 @@ class NetworkService {
     }
     this.lastHeartbeatTime = now;
 
+    const payload = {
+      type: 'heartbeat',
+      userId: this.currentUserId,
+      name: this.currentUser?.name,
+      role: this.currentUser?.role,
+      avatar: this.currentUser?.avatar,
+      timestamp: now,
+    };
+
     // Send via WebSocket if open
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(
-        JSON.stringify({
-          type: 'heartbeat',
-          userId: this.currentUserId,
-          timestamp: now,
-        })
-      );
+      this.ws.send(JSON.stringify(payload));
       return;
     }
 
-    // HTTP fallback
+    // HTTP fallback - broadcasts member to server so they are visible to everyone
     try {
       fetch('/api/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: this.currentUserId }),
-      }).catch(() => {});
+        body: JSON.stringify(payload),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.members) {
+            this.notify('presence_update', { members: data.members });
+          }
+        })
+        .catch(() => {});
     } catch {}
   }
 
-  // Universal message sender with guaranteed delivery
+  // Cross-Phone Peer Sync: Shares signed-in member across all phones
+  public async syncPeers() {
+    if (!this.isNetworkAllowed()) return;
+    const now = Date.now();
+    if (now - this.lastSyncPeersTime < 1000) return;
+    this.lastSyncPeersTime = now;
+
+    try {
+      const res = await fetch('/api/sync/peers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          members: this.currentUser ? [this.currentUser] : [],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.members) {
+          this.notify('presence_update', { members: data.members, messages: data.messages });
+        }
+      }
+    } catch {}
+  }
+
   public send(payload: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
     }
   }
 
-  // Rapid millisecond community message sending with instant HTTP + WS dual-dispatch
+  // Rapid millisecond community message sending with Phone Mesh routing tags
   public async sendCommunityMessage(message: ChatMessage): Promise<void> {
-    const payload = { type: 'send_community_message', message };
+    const connInfo = this.getConnectionInfo();
+    const routedMsg: ChatMessage = {
+      ...message,
+      hops: (message.hops || 0) + 1,
+      route: [...(message.route || []), `${this.currentUser?.name || 'Peer'} (${connInfo.deviceLabel})`],
+    };
+
+    const payload = { type: 'send_community_message', message: routedMsg };
 
     // 1. Send via WebSocket immediately
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
     }
 
-    // 2. Also send via HTTP REST endpoint in parallel so it NEVER fails even if WS is reconnecting
+    // 2. Also send via HTTP REST endpoint in parallel so it NEVER fails even across phones
     try {
       fetch('/api/chat/community', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message: routedMsg }),
       }).catch(() => {});
     } catch {}
   }
 
-  // Rapid millisecond direct message sending with instant HTTP + WS dual-dispatch
+  // Rapid millisecond direct message sending with Phone Mesh routing tags
   public async sendDirectMessage(message: ChatMessage): Promise<void> {
-    const payload = { type: 'send_direct_message', message };
+    const connInfo = this.getConnectionInfo();
+    const routedMsg: ChatMessage = {
+      ...message,
+      hops: (message.hops || 0) + 1,
+      route: [...(message.route || []), `${this.currentUser?.name || 'Peer'} (${connInfo.deviceLabel})`],
+    };
+
+    const payload = { type: 'send_direct_message', message: routedMsg };
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
@@ -214,7 +276,7 @@ class NetworkService {
       fetch('/api/chat/direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message: routedMsg }),
       }).catch(() => {});
     } catch {}
   }
@@ -300,6 +362,7 @@ class NetworkService {
       });
       const data = await res.json();
       if (res.ok && data.user) {
+        this.setCurrentUser(data.user);
         return { success: true, user: data.user };
       }
       return { success: false, error: data.error || 'Authentication failed' };
@@ -325,6 +388,7 @@ class NetworkService {
         joinedAt: new Date().toISOString().split('T')[0],
         bio: 'Real verified member in VC Community network.',
       };
+      this.setCurrentUser(localUser);
       return { success: true, user: localUser };
     }
   }

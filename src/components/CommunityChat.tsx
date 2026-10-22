@@ -13,7 +13,8 @@ import {
   Smile,
   MessageSquare,
   Flame,
-  Crown
+  Crown,
+  Radio
 } from 'lucide-react';
 import { ChatMessage, User, ThemeMode, ChatBubbleTheme } from '../types';
 import { getRoleTitle, SAMPLE_CHAT_IMAGES } from '../services/storage';
@@ -338,8 +339,17 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                     </div>
                   )}
 
-                  <div className="mt-1.5 text-[9px] text-amber-500/80 dark:text-amber-400/80 tracking-widest uppercase font-mono font-bold">
-                    ★ Center Broadcast ★
+                  <div className="mt-1.5 flex items-center justify-center gap-2 text-[9px] text-amber-500/80 dark:text-amber-400/80 font-mono">
+                    <span className="tracking-widest uppercase font-bold">★ Center Broadcast ★</span>
+                    {msg.hops && msg.hops > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 cursor-help"
+                        title={`Phone-to-phone route: ${msg.route?.join(' ➔ ') || 'Direct peer mesh'}`}
+                      >
+                        <Radio className="w-2.5 h-2.5 animate-pulse text-cyan-500" />
+                        <span>{msg.hops} phone hop{msg.hops > 1 ? 's' : ''}</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Reaction Pills */}
@@ -471,8 +481,19 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                     </div>
                   )}
 
-                  <div className="mt-1 text-[9px] text-zinc-400 font-mono text-right">
-                    Normal Person · Left side
+                  <div className="mt-1 flex items-center justify-between text-[9px] text-zinc-400 font-mono">
+                    {msg.hops && msg.hops > 0 ? (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 cursor-help"
+                        title={`Phone-to-phone route: ${msg.route?.join(' ➔ ') || 'Direct peer mesh'}`}
+                      >
+                        <Radio className="w-2.5 h-2.5 animate-pulse text-cyan-500" />
+                        <span>{msg.hops} hop{msg.hops > 1 ? 's' : ''}</span>
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <span>Normal Person · Left side</span>
                   </div>
 
                   {/* Reaction Pills */}

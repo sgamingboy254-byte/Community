@@ -12,6 +12,17 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(express.json({ limit: '15mb' }));
 
+// CORS middleware allowing any phone or shared link to connect
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -264,20 +275,76 @@ app.post('/api/auth/register', (req, res) => {
   res.json({ success: true, user: member });
 });
 
-// 11-Second Heartbeat Endpoint
+// Multi-Phone Rapid Heartbeat & Auto-Discovery Endpoint
 app.post('/api/heartbeat', (req, res) => {
-  const { userId } = req.body;
+  const { userId, name, role, avatar } = req.body;
   if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-  const member = db.members.find((m) => m.id === userId);
-  if (member) {
+  let member = db.members.find((m) => m.id === userId);
+  if (!member && name) {
+    member = {
+      id: userId,
+      name,
+      communityCode: role === 'super_admin' ? '00099' : role === 'power' ? '00011' : '80504',
+      role: role || 'normal',
+      avatar:
+        avatar ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+      walletBalance: role === 'super_admin' ? 250000 : role === 'power' ? 50000 : 10000,
+      status: 'online',
+      lastSeen: Date.now(),
+      joinedAt: new Date().toISOString().split('T')[0],
+      bio: 'Real verified member in VC Community network.',
+    };
+    db.members.push(member);
+    saveDB();
+    broadcast({ type: 'member_joined', member, members: db.members });
+  } else if (member) {
     member.lastSeen = Date.now();
     member.status = 'online';
     saveDB();
-    res.json({ success: true, status: 'online' });
-  } else {
-    res.status(404).json({ error: 'Member not found' });
   }
+  res.json({ success: true, status: 'online', members: db.members });
+});
+
+// Phone Mesh Cross-Sync Endpoint
+app.post('/api/sync/peers', (req, res) => {
+  const { members, messages } = req.body;
+  let changed = false;
+
+  if (Array.isArray(members)) {
+    for (const m of members) {
+      const existing = db.members.find((em) => em.id === m.id);
+      if (!existing) {
+        db.members.push(m);
+        changed = true;
+      } else if (m.lastSeen && m.lastSeen > (existing.lastSeen || 0)) {
+        existing.status = m.status;
+        existing.lastSeen = m.lastSeen;
+        changed = true;
+      }
+    }
+  }
+
+  if (Array.isArray(messages)) {
+    for (const msg of messages) {
+      if (!db.communityMessages.some((em) => em.id === msg.id)) {
+        db.communityMessages.push(msg);
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    saveDB();
+    broadcast({
+      type: 'presence_update',
+      members: db.members,
+      messages: db.communityMessages,
+    });
+  }
+
+  res.json({ success: true, members: db.members, messages: db.communityMessages });
 });
 
 // Rapid Instant Community Chat Endpoint

@@ -26,6 +26,8 @@ export interface ChatMessage {
   recipientId?: string; // For personal chat
   isSystemAnnouncement?: boolean;
   reactions?: Record<string, string[]>; // emoji -> array of userIds
+  hops?: number;
+  route?: string[];
 }
 
 export interface WalletTransaction {

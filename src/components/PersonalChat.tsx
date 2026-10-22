@@ -15,7 +15,8 @@ import {
   Coins,
   Users,
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  Radio
 } from 'lucide-react';
 import { ChatMessage, User, ThemeMode } from '../types';
 import { getRoleTitle, SAMPLE_CHAT_IMAGES, storage } from '../services/storage';
@@ -452,9 +453,20 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] text-zinc-400 mt-1 px-1 font-mono">
-                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-1 px-1">
+                            <span className="text-[10px] text-zinc-400 font-mono">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {msg.hops && msg.hops > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded-full cursor-help"
+                                title={`Phone mesh route: ${msg.route?.join(' ➔ ') || 'Phone-to-phone'}`}
+                              >
+                                <Radio className="w-2.5 h-2.5 animate-pulse text-cyan-500" />
+                                <span>{msg.hops} hop{msg.hops > 1 ? 's' : ''}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     );

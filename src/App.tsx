@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Radio } from 'lucide-react';
 import { User, ChatMessage, WalletTransaction, GraphDataPoint, AppSettings } from './types';
 import { storage } from './services/storage';
 import { network } from './services/network';
@@ -13,6 +14,7 @@ import { AccountsModal } from './components/AccountsModal';
 import { SuperAdminModal } from './components/SuperAdminModal';
 import { StartupScreen } from './components/StartupScreen';
 import { NetworkSetupModal, NetworkChoice } from './components/NetworkSetupModal';
+import { PhoneMeshModal } from './components/PhoneMeshModal';
 import { sound } from './utils/audio';
 
 export default function App() {
@@ -60,6 +62,7 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showAccountsModal, setShowAccountsModal] = useState(false);
   const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
+  const [showPhoneMeshModal, setShowPhoneMeshModal] = useState(false);
 
   // Initialize and connect to server
   useEffect(() => {
@@ -67,7 +70,9 @@ export default function App() {
     const savedUser = storage.getCurrentUser();
     if (savedUser) {
       setCurrentUser(savedUser);
+      network.setCurrentUser(savedUser);
       network.setUserId(savedUser.id);
+      network.syncPeers();
     } else {
       setShowSignInModal(true);
     }
@@ -315,6 +320,7 @@ export default function App() {
           onOpenSettings={() => setShowSettingsModal(true)}
           onOpenAccounts={() => setShowAccountsModal(true)}
           onOpenSuperAdminModal={() => setShowSuperAdminModal(true)}
+          onOpenPhoneMesh={() => setShowPhoneMeshModal(true)}
           onPlayStartupSound={() => setShowStartupScreen(true)}
           onSignOut={handleSignOut}
           themeMode={settings.themeMode}
@@ -339,30 +345,50 @@ export default function App() {
                 : 'Connecting to Live Server...'}
             </span>
             <span className="text-zinc-400">·</span>
-            <span className="text-zinc-600 dark:text-zinc-400">
-              <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{onlineCount}</strong> real person{onlineCount === 1 ? '' : 's'} online now
-            </span>
-            <span className="hidden sm:inline text-zinc-400">·</span>
-            <span className="hidden sm:inline text-zinc-400 font-mono">
-              Rapid real-time sync active (0ms instant chat)
-            </span>
-
-            {/* Independent Phone Network Status Button */}
             <button
-              onClick={() => setShowNetworkPrompt(true)}
-              className="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 text-[10px] font-mono text-zinc-600 dark:text-zinc-300 transition-colors shadow-2xs cursor-pointer"
-              title="Click to configure independent phone network connection"
+              onClick={() => setShowPhoneMeshModal(true)}
+              className="text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-cyan-400 cursor-pointer flex items-center gap-1 transition-colors"
+              title="Click to view all connected phones and people"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${networkMode === 'not_now' ? 'bg-zinc-400' : 'bg-cyan-500'}`} />
-              <span className="hidden xs:inline">
-                {networkMode === 'not_now'
-                  ? 'Local Mode (Offline)'
-                  : networkMode === 'for_this_time'
-                  ? 'Phone Direct (Session)'
-                  : 'Phone Direct Network'}
-              </span>
-              <span className="xs:hidden">Network</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{onlineCount}</strong> real person{onlineCount === 1 ? '' : 's'} online now
             </button>
+            <span className="hidden sm:inline text-zinc-400">·</span>
+            <button
+              onClick={() => setShowPhoneMeshModal(true)}
+              className="hidden sm:flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-mono"
+            >
+              <Radio className="w-3 h-3 animate-pulse" />
+              <span>Phone Mesh Relay Active</span>
+            </button>
+
+            <div className="ml-auto flex items-center gap-1.5">
+              {/* Phone Mesh Status Button */}
+              <button
+                onClick={() => setShowPhoneMeshModal(true)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gradient-to-r from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/30 text-[10px] font-mono text-cyan-700 dark:text-cyan-300 transition-colors shadow-2xs cursor-pointer"
+                title="View Connected Phones & Mesh Network"
+              >
+                <Radio className="w-2.5 h-2.5 text-cyan-500 animate-pulse" />
+                <span>Phones ({onlineCount})</span>
+              </button>
+
+              {/* Independent Phone Network Status Button */}
+              <button
+                onClick={() => setShowNetworkPrompt(true)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 text-[10px] font-mono text-zinc-600 dark:text-zinc-300 transition-colors shadow-2xs cursor-pointer"
+                title="Click to configure independent phone network connection"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${networkMode === 'not_now' ? 'bg-zinc-400' : 'bg-cyan-500'}`} />
+                <span className="hidden xs:inline">
+                  {networkMode === 'not_now'
+                    ? 'Offline'
+                    : networkMode === 'for_this_time'
+                    ? 'Phone Direct (1x)'
+                    : 'Phone Direct'}
+                </span>
+                <span className="xs:hidden">Net</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -432,7 +458,9 @@ export default function App() {
         onSuccess={(user) => {
           setCurrentUser(user);
           setShowSignInModal(false);
+          network.setCurrentUser(user);
           network.setUserId(user.id);
+          network.syncPeers();
         }}
         onClose={currentUser ? () => setShowSignInModal(false) : undefined}
       />
@@ -454,7 +482,9 @@ export default function App() {
           members={members}
           onSwitchUser={(user) => {
             setCurrentUser(user);
+            network.setCurrentUser(user);
             network.setUserId(user.id);
+            network.syncPeers();
           }}
           onSignOut={handleSignOut}
           onOpenSignIn={() => setShowSignInModal(true)}
@@ -472,9 +502,19 @@ export default function App() {
             network.fetchState().then((state) => {
               if (state.members) setMembers(state.members);
             });
+            network.syncPeers();
           }}
         />
       )}
+
+      {/* Phone-to-Phone Mesh Network Modal */}
+      <PhoneMeshModal
+        isOpen={showPhoneMeshModal}
+        onClose={() => setShowPhoneMeshModal(false)}
+        currentUser={currentUser}
+        members={members}
+        connectedPeersCount={onlineCount}
+      />
 
       {/* Independent Phone Network Access Prompt (Shows before opening sound and logo) */}
       <NetworkSetupModal
