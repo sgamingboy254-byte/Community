@@ -8,15 +8,19 @@ import {
   Sparkles, 
   Upload, 
   X, 
-  Maximize2,
-  Info,
-  Smile
+  Maximize2, 
+  Info, 
+  Smile,
+  MessageSquare,
+  Flame,
+  Crown
 } from 'lucide-react';
 import { ChatMessage, User, ThemeMode, ChatBubbleTheme } from '../types';
 import { getRoleTitle, SAMPLE_CHAT_IMAGES } from '../services/storage';
 import { sound } from '../utils/audio';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '👍', '🚀', '🎉', '👏', '💎', '😂'];
+const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80';
 
 interface CommunityChatProps {
   currentUser: User;
@@ -63,13 +67,18 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
     sound.playSend();
   };
 
+  const handleQuickGreet = (text: string) => {
+    onSendMessage(text);
+    sound.playSend();
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
-        sound.playReceive();
+        sound.playPop();
       };
       reader.readAsDataURL(file);
     }
@@ -78,61 +87,109 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
   const handleTriggerReaction = (messageId: string, emoji: string) => {
     onToggleReaction?.(messageId, emoji);
     setActiveReactionMenuId(null);
-    sound.playReceive();
+    sound.playPop();
   };
 
-  // Get bubble styling based on settings
+  // Get bubble styling based on theme and role
   const getChatBubbleStyle = (isCenterRole: boolean, isMine: boolean) => {
     if (themeMode === 'dark') {
       if (isCenterRole) {
-        return 'bg-zinc-900 border-2 border-white/60 text-white shadow-xl';
+        return 'bg-gradient-to-b from-zinc-800 to-zinc-900 border-2 border-amber-500/80 text-white shadow-2xl shadow-amber-500/10';
       }
-      return 'bg-zinc-900/90 border border-zinc-800 text-zinc-200';
+      return 'bg-zinc-900 border border-zinc-800 text-zinc-100 shadow-md';
     }
 
     if (themeMode === 'neon') {
       if (isCenterRole) {
-        return 'bg-zinc-950 border-2 border-cyan-400 text-cyan-100 neon-glow-cyan';
+        return 'bg-zinc-950 border-2 border-cyan-400 text-cyan-50 shadow-lg shadow-cyan-500/20';
       }
-      return 'bg-zinc-900 border border-purple-500/40 text-purple-100';
+      return 'bg-zinc-900 border border-purple-500/50 text-purple-50 shadow-md shadow-purple-500/10';
     }
 
     // Normal colorful mode
     if (isCenterRole) {
-      return 'bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border-2 border-amber-400/80 dark:border-amber-500 text-zinc-900 dark:text-zinc-100 shadow-md';
+      return 'bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-indigo-500/15 border-2 border-amber-400 dark:border-amber-500 text-zinc-900 dark:text-zinc-100 shadow-xl shadow-amber-500/10';
     }
 
     if (isMine) {
-      return 'bg-indigo-50 dark:bg-zinc-800 border border-indigo-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100';
+      return 'bg-indigo-50 dark:bg-zinc-800/90 border border-indigo-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm';
     }
 
-    return 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100';
+    return 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm';
   };
 
   return (
     <div className="flex flex-col h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-4.5rem)] max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
       {/* Community Chart Top Banner explaining alignment rule */}
-      <div className="mb-3 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-sm flex items-center justify-between text-xs">
+      <motion.div 
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-2.5 px-3.5 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex items-center justify-between text-xs"
+      >
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 text-indigo-500 shrink-0" />
           <span className="text-zinc-600 dark:text-zinc-300">
-            <strong>Community Chart Alignment:</strong> Power Person & Super Admin messages are placed in{' '}
-            <span className="font-bold underline decoration-amber-500">Center</span>. Normal member messages are on the{' '}
-            <span className="font-bold underline decoration-indigo-500">Left Side</span>. Tap <Smile className="w-3.5 h-3.5 inline mx-0.5 text-indigo-500" /> to react!
+            <strong>Live Community Chart:</strong> Power & Super Admin broadcast in{' '}
+            <span className="font-bold text-amber-600 dark:text-amber-400 underline decoration-amber-500">Center</span>. Normal members on{' '}
+            <span className="font-bold text-indigo-600 dark:text-indigo-400 underline decoration-indigo-500">Left Side</span>.
           </span>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
-          <span>Your Role: {getRoleTitle(currentUser.role)}</span>
+          <span>You: {getRoleTitle(currentUser.role)}</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Messages Scroll Area */}
       <div 
-        className="flex-1 overflow-y-auto px-2 py-4 space-y-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-950/60"
+        className="flex-1 overflow-y-auto px-2 sm:px-4 py-4 space-y-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/70 backdrop-blur-xs relative"
         onClick={() => {
           if (activeReactionMenuId) setActiveReactionMenuId(null);
         }}
       >
+        {/* Animated Empty State if no messages yet */}
+        {messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center justify-center h-full min-h-[300px] text-center p-6 space-y-4"
+          >
+            <div className="relative w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-xl shadow-indigo-500/25">
+              <MessageSquare className="w-8 h-8 animate-bounce" />
+              <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1 -right-1" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-extrabold text-zinc-900 dark:text-white">
+                Welcome to VC Community Live Chat!
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                Be the first to send a message. Your messages sync in rapid real-time across all connected peers.
+              </p>
+            </div>
+
+            {/* Quick Greeting Action Chips */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              {[
+                'Hello everyone! 👋',
+                'Checking in! 🚀',
+                'Excited to be here 💎',
+                'VC Community online 🔥'
+              ].map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => handleQuickGreet(chip)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:scale-105 active:scale-95 text-zinc-700 dark:text-zinc-200 transition-all shadow-sm"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Message Items List */}
         {messages.map((msg) => {
           const isCenterRole = msg.senderRole === 'power' || msg.senderRole === 'super_admin';
           const isMine = msg.senderId === currentUser.id;
@@ -140,17 +197,18 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
           const reactions = msg.reactions || {};
           const reactionEntries = Object.entries(reactions);
 
-          // System Announcement Card
+          // 1. System Announcement Banner Card
           if (isSystem) {
             return (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="my-3 mx-auto max-w-xl p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs text-center shadow-sm"
+                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 350 }}
+                className="my-3 mx-auto max-w-xl p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs text-center shadow-md relative overflow-hidden"
               >
                 <div className="flex items-center justify-center gap-2 font-bold mb-1">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
                   <span>{msg.senderName}</span>
                 </div>
                 <p className="leading-relaxed font-medium">{msg.text}</p>
@@ -161,39 +219,42 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
             );
           }
 
-          // Center Aligned (Power Person & Super Admin)
+          // 2. Center Aligned Broadcast (Power Person & Super Admin)
           if (isCenterRole) {
             return (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: 14, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 350 }}
                 className="flex flex-col items-center my-3 relative group"
               >
                 {/* Center Header Details */}
                 <div className="flex items-center gap-2 mb-1.5">
                   <img
-                    src={msg.senderAvatar}
+                    src={msg.senderAvatar || FALLBACK_AVATAR}
                     alt={msg.senderName}
                     referrerPolicy="no-referrer"
-                    className="w-7 h-7 rounded-full object-cover border-2 border-amber-500 shadow-sm keep-colorful-image"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = FALLBACK_AVATAR;
+                    }}
+                    className="w-7 h-7 rounded-full object-cover border-2 border-amber-500 shadow-md keep-colorful-image"
                   />
                   <span className="text-xs font-bold text-zinc-900 dark:text-white">{msg.senderName}</span>
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm ${
                       msg.senderRole === 'super_admin'
-                        ? 'bg-amber-500 text-black shadow-sm'
-                        : 'bg-purple-600 text-white shadow-sm'
+                        ? 'bg-amber-500 text-black shadow-amber-500/30 ring-2 ring-amber-400/50'
+                        : 'bg-purple-600 text-white shadow-purple-500/30 ring-2 ring-purple-400/50'
                     }`}
                   >
                     {msg.senderRole === 'super_admin' ? (
                       <>
-                        <ShieldCheck className="w-3 h-3" /> Super Admin
+                        <Crown className="w-3 h-3 text-black animate-pulse" /> Super Admin
                       </>
                     ) : (
                       <>
-                        <Zap className="w-3 h-3" /> Power Person
+                        <Zap className="w-3 h-3 text-yellow-300 animate-pulse" /> Power Person
                       </>
                     )}
                   </span>
@@ -207,22 +268,23 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveReactionMenuId(activeReactionMenuId === msg.id ? null : msg.id);
+                      sound.playPop();
                     }}
-                    className="p-1 rounded-full text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                    className="p-1 rounded-full text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     title="Add reaction"
                   >
                     <Smile className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Click-to-trigger Reaction Overlay */}
+                {/* Reaction Overlay Dropdown */}
                 <AnimatePresence>
                   {activeReactionMenuId === msg.id && (
                     <motion.div
-                      initial={{ scale: 0.9, opacity: 0, y: -4 }}
+                      initial={{ scale: 0.85, opacity: 0, y: -6 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.9, opacity: 0, y: -4 }}
-                      className="absolute -top-7 z-30 flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-xl border border-zinc-200 dark:border-zinc-700 backdrop-blur-md"
+                      exit={{ scale: 0.85, opacity: 0, y: -6 }}
+                      className="absolute -top-7 z-30 flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-2xl border border-zinc-200 dark:border-zinc-700 backdrop-blur-md"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {REACTION_EMOJIS.map((emoji) => (
@@ -230,7 +292,7 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                           key={emoji}
                           type="button"
                           onClick={() => handleTriggerReaction(msg.id, emoji)}
-                          className="w-7 h-7 flex items-center justify-center hover:scale-125 transition-transform text-sm rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          className="w-7 h-7 flex items-center justify-center hover:scale-130 active:scale-90 transition-transform text-sm rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
                         >
                           {emoji}
                         </button>
@@ -239,15 +301,15 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                   )}
                 </AnimatePresence>
 
-                {/* Centered Message Box */}
+                {/* Centered Message Card */}
                 <div
-                  className={`w-full max-w-xl p-4 rounded-2xl text-center relative ${getChatBubbleStyle(
+                  className={`w-full max-w-xl p-4 rounded-2xl text-center relative transition-transform hover:scale-[1.008] ${getChatBubbleStyle(
                     true,
                     isMine
                   )}`}
                 >
                   {msg.text && (
-                    <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-sm font-semibold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                   )}
 
                   {/* High Quality Colorful Image attachment */}
@@ -258,10 +320,16 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                         alt="Community upload"
                         referrerPolicy="no-referrer"
                         className="w-full h-auto max-h-72 object-cover cursor-pointer hover:scale-[1.02] transition-transform keep-colorful-image"
-                        onClick={() => setLightboxImage(msg.imageUrl || null)}
+                        onClick={() => {
+                          setLightboxImage(msg.imageUrl || null);
+                          sound.playPop();
+                        }}
                       />
                       <button
-                        onClick={() => setLightboxImage(msg.imageUrl || null)}
+                        onClick={() => {
+                          setLightboxImage(msg.imageUrl || null);
+                          sound.playPop();
+                        }}
                         className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
                         title="View Fullscreen"
                       >
@@ -270,7 +338,7 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                     </div>
                   )}
 
-                  <div className="mt-1 text-[10px] text-zinc-400 tracking-wider uppercase font-semibold">
+                  <div className="mt-1.5 text-[9px] text-amber-500/80 dark:text-amber-400/80 tracking-widest uppercase font-mono font-bold">
                     ★ Center Broadcast ★
                   </div>
 
@@ -287,9 +355,9 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                               e.stopPropagation();
                               handleTriggerReaction(msg.id, emoji);
                             }}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
                               hasReacted
-                                ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold scale-105'
+                                ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold scale-105 shadow-sm'
                                 : 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                             }`}
                           >
@@ -305,25 +373,28 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
             );
           }
 
-          // Left Side Aligned (Normal Person & Other members)
+          // 3. Left Side Aligned (Normal Person & Other members)
           return (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, x: -10, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 350 }}
               className="flex items-start gap-3 justify-start max-w-lg my-2 relative group"
             >
               <img
-                src={msg.senderAvatar}
+                src={msg.senderAvatar || FALLBACK_AVATAR}
                 alt={msg.senderName}
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = FALLBACK_AVATAR;
+                }}
                 className="w-9 h-9 rounded-full object-cover shrink-0 border border-zinc-300 dark:border-zinc-700 shadow-sm keep-colorful-image mt-0.5"
               />
-              <div className="flex flex-col items-start relative">
+              <div className="flex flex-col items-start relative max-w-full">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{msg.senderName}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono">
+                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{msg.senderName}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">
                     Normal
                   </span>
                   <span className="text-[10px] text-zinc-400">
@@ -336,22 +407,23 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveReactionMenuId(activeReactionMenuId === msg.id ? null : msg.id);
+                      sound.playPop();
                     }}
-                    className="p-1 rounded-full text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                    className="p-1 rounded-full text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     title="Add reaction"
                   >
                     <Smile className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Click-to-trigger Reaction Overlay */}
+                {/* Reaction Overlay Dropdown */}
                 <AnimatePresence>
                   {activeReactionMenuId === msg.id && (
                     <motion.div
-                      initial={{ scale: 0.9, opacity: 0, y: -4 }}
+                      initial={{ scale: 0.85, opacity: 0, y: -6 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.9, opacity: 0, y: -4 }}
-                      className="absolute -top-7 left-0 z-30 flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-xl border border-zinc-200 dark:border-zinc-700 backdrop-blur-md"
+                      exit={{ scale: 0.85, opacity: 0, y: -6 }}
+                      className="absolute -top-7 left-0 z-30 flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-2xl border border-zinc-200 dark:border-zinc-700 backdrop-blur-md"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {REACTION_EMOJIS.map((emoji) => (
@@ -359,7 +431,7 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                           key={emoji}
                           type="button"
                           onClick={() => handleTriggerReaction(msg.id, emoji)}
-                          className="w-7 h-7 flex items-center justify-center hover:scale-125 transition-transform text-sm rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          className="w-7 h-7 flex items-center justify-center hover:scale-130 active:scale-90 transition-transform text-sm rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
                         >
                           {emoji}
                         </button>
@@ -368,9 +440,9 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                   )}
                 </AnimatePresence>
 
-                <div className={`p-3.5 rounded-2xl rounded-tl-sm text-left shadow-sm ${getChatBubbleStyle(false, isMine)}`}>
+                <div className={`p-3.5 rounded-2xl rounded-tl-sm text-left shadow-sm transition-transform hover:scale-[1.008] ${getChatBubbleStyle(false, isMine)}`}>
                   {msg.text && (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
                   )}
 
                   {/* High Quality Colorful Image attachment */}
@@ -381,10 +453,16 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                         alt="Shared in community"
                         referrerPolicy="no-referrer"
                         className="w-full h-auto max-h-64 object-cover cursor-pointer hover:scale-[1.02] transition-transform keep-colorful-image"
-                        onClick={() => setLightboxImage(msg.imageUrl || null)}
+                        onClick={() => {
+                          setLightboxImage(msg.imageUrl || null);
+                          sound.playPop();
+                        }}
                       />
                       <button
-                        onClick={() => setLightboxImage(msg.imageUrl || null)}
+                        onClick={() => {
+                          setLightboxImage(msg.imageUrl || null);
+                          sound.playPop();
+                        }}
                         className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
                         title="View Fullscreen"
                       >
@@ -410,9 +488,9 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                               e.stopPropagation();
                               handleTriggerReaction(msg.id, emoji);
                             }}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
                               hasReacted
-                                ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold scale-105'
+                                ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold scale-105 shadow-sm'
                                 : 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                             }`}
                           >
@@ -433,7 +511,11 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
 
       {/* Selected Image Preview before sending */}
       {selectedImage && (
-        <div className="mt-2 p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-2 p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between shadow-md"
+        >
           <div className="flex items-center gap-2">
             <img
               src={selectedImage}
@@ -445,16 +527,19 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
               <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 block">
                 Colourful Image Attached
               </span>
-              <span className="text-[10px] text-emerald-500">Natural colors preserved</span>
+              <span className="text-[10px] text-emerald-500 font-medium">Natural colors preserved</span>
             </div>
           </div>
           <button
-            onClick={() => setSelectedImage(null)}
-            className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            onClick={() => {
+              setSelectedImage(null);
+              sound.playPop();
+            }}
+            className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
+        </motion.div>
       )}
 
       {/* Colourful Photo Gallery Drawer */}
@@ -464,7 +549,7 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+            className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xl"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
@@ -473,7 +558,7 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
               </span>
               <button
                 onClick={() => setShowImagePicker(false)}
-                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
               >
                 ✕ Close
               </button>
@@ -486,9 +571,9 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
                   onClick={() => {
                     setSelectedImage(img.url);
                     setShowImagePicker(false);
-                    sound.playReceive();
+                    sound.playPop();
                   }}
-                  className="group relative rounded-xl overflow-hidden aspect-video border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-indigo-500 transition-all text-left"
+                  className="group relative rounded-xl overflow-hidden aspect-video border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-indigo-500 transition-all text-left cursor-pointer"
                 >
                   <img
                     src={img.url}
@@ -518,65 +603,89 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
 
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          title="Upload from device"
-          className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-indigo-500 hover:text-indigo-600 transition-all"
+          onClick={() => {
+            fileInputRef.current?.click();
+            sound.playPop();
+          }}
+          className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
+          title="Upload image from phone or device"
         >
           <Upload className="w-4 h-4" />
         </button>
 
         <button
           type="button"
-          onClick={() => setShowImagePicker(!showImagePicker)}
-          title="Pick colourful photo from gallery"
-          className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-indigo-500 hover:text-indigo-600 transition-all"
+          onClick={() => {
+            setShowImagePicker(!showImagePicker);
+            sound.playPop();
+          }}
+          className={`p-2.5 rounded-xl border transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer ${
+            showImagePicker
+              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+              : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-indigo-500 hover:text-indigo-600'
+          }`}
+          title="Select Colorful Images"
         >
           <ImageIcon className="w-4 h-4" />
         </button>
 
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder={
-            currentUser.role === 'power' || currentUser.role === 'super_admin'
-              ? `Speak in Center as ${getRoleTitle(currentUser.role)}...`
-              : 'Speak on Left Side as Normal Person...'
-          }
-          className="flex-1 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all shadow-sm"
-        />
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={
+              currentUser.role === 'super_admin'
+                ? 'Broadcast as Super Admin in Center...'
+                : currentUser.role === 'power'
+                ? 'Broadcast as Power Person in Center...'
+                : 'Send message as Normal Person on Left...'
+            }
+            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
+          />
+        </div>
 
         <button
           type="submit"
           disabled={!inputText.trim() && !selectedImage}
-          className="p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-md transition-all flex items-center justify-center"
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
         >
           <Send className="w-4 h-4" />
+          <span className="hidden sm:inline">Send</span>
         </button>
       </form>
 
-      {/* Image Lightbox Viewport */}
+      {/* Lightbox Modal for Fullscreen Image View */}
       <AnimatePresence>
         {lightboxImage && (
-          <div
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setLightboxImage(null)}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 p-4 bg-black/90 backdrop-blur-xl flex items-center justify-center"
+            onClick={() => {
+              setLightboxImage(null);
+              sound.playPop();
+            }}
           >
-            <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-              <button
-                onClick={() => setLightboxImage(null)}
-                className="absolute top-2 right-2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+            <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/20">
               <img
                 src={lightboxImage}
-                alt="Enlarged"
+                alt="Enlarged community photo"
                 referrerPolicy="no-referrer"
-                className="max-h-[85vh] w-auto rounded-xl object-contain shadow-2xl keep-colorful-image"
+                className="w-full h-full object-contain keep-colorful-image"
               />
+              <button
+                onClick={() => {
+                  setLightboxImage(null);
+                  sound.playPop();
+                }}
+                className="absolute top-3 right-3 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

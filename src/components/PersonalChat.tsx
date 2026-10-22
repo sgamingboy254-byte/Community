@@ -400,27 +400,31 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                     return (
                       <motion.div
                         key={msg.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', damping: 22, stiffness: 350 }}
                         className={`flex gap-2.5 max-w-md ${isMine ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
                       >
                         <img
-                          src={msg.senderAvatar}
+                          src={msg.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80'}
                           alt={msg.senderName}
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80';
+                          }}
                           className="w-8 h-8 rounded-full object-cover shrink-0 border border-white/50 dark:border-white/10 shadow-sm keep-colorful-image mt-0.5"
                         />
 
                         <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                           <div
-                            className={`p-3 rounded-2xl text-sm ${
+                            className={`p-3 rounded-2xl text-sm transition-transform hover:scale-[1.01] ${
                               isMine
                                 ? 'glass-bubble-mine rounded-tr-xs'
                                 : 'glass-bubble-other rounded-tl-xs text-zinc-900 dark:text-zinc-100'
                             }`}
                           >
                             {msg.text && (
-                              <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                              <p className="whitespace-pre-wrap leading-relaxed font-medium">{msg.text}</p>
                             )}
 
                             {msg.imageUrl && (
@@ -430,11 +434,17 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                                   alt="Direct share"
                                   referrerPolicy="no-referrer"
                                   className="w-full h-auto max-h-60 object-cover cursor-pointer hover:scale-[1.02] transition-transform keep-colorful-image"
-                                  onClick={() => setLightboxImage(msg.imageUrl || null)}
+                                  onClick={() => {
+                                    setLightboxImage(msg.imageUrl || null);
+                                    sound.playPop();
+                                  }}
                                 />
                                 <button
-                                  onClick={() => setLightboxImage(msg.imageUrl || null)}
-                                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                  onClick={() => {
+                                    setLightboxImage(msg.imageUrl || null);
+                                    sound.playPop();
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors cursor-pointer"
                                   title="View Fullscreen"
                                 >
                                   <Maximize2 className="w-3.5 h-3.5" />

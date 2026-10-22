@@ -46,7 +46,7 @@ export default function App() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [members, setMembers] = useState<User[]>([]);
-  const [communityMessages, setCommunityMessages] = useState<ChatMessage[]>([]);
+  const [communityMessages, setCommunityMessages] = useState<ChatMessage[]>(() => storage.getCommunityMessages());
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [graphPoints, setGraphPoints] = useState<GraphDataPoint[]>([]);
   const [settings, setSettings] = useState<AppSettings>(storage.getSettings());
@@ -74,10 +74,19 @@ export default function App() {
 
     // 2. Fetch full real server state
     network.fetchState().then((state) => {
-      if (state.members) setMembers(state.members);
-      if (state.communityMessages) setCommunityMessages(state.communityMessages);
-      if (state.transactions) setTransactions(state.transactions);
-      if (state.graphPoints) setGraphPoints(state.graphPoints);
+      if (state.members && state.members.length > 0) setMembers(state.members);
+      if (state.communityMessages && state.communityMessages.length > 0) {
+        setCommunityMessages((prev) => {
+          const map = new Map<string, ChatMessage>();
+          prev.forEach((m) => map.set(m.id, m));
+          state.communityMessages.forEach((m) => map.set(m.id, m));
+          const merged = Array.from(map.values()).sort((a, b) => a.timestamp - b.timestamp);
+          storage.saveCommunityMessages(merged);
+          return merged;
+        });
+      }
+      if (state.transactions && state.transactions.length > 0) setTransactions(state.transactions);
+      if (state.graphPoints && state.graphPoints.length > 0) setGraphPoints(state.graphPoints);
     });
 
     // 3. Listen to real-time WebSocket events from the server
@@ -88,16 +97,24 @@ export default function App() {
 
       if (event === 'init_state') {
         if (data.members) setMembers(data.members);
-        if (data.communityMessages) setCommunityMessages(data.communityMessages);
+        if (data.communityMessages && data.communityMessages.length > 0) {
+          setCommunityMessages((prev) => {
+            const map = new Map<string, ChatMessage>();
+            prev.forEach((m) => map.set(m.id, m));
+            data.communityMessages.forEach((m: ChatMessage) => map.set(m.id, m));
+            const merged = Array.from(map.values()).sort((a, b) => a.timestamp - b.timestamp);
+            storage.saveCommunityMessages(merged);
+            return merged;
+          });
+        }
         if (data.transactions) setTransactions(data.transactions);
         if (data.graphPoints) setGraphPoints(data.graphPoints);
       }
 
-      // 11-Second Heartbeat presence update (tracks who is online right now in real time)
+      // Rapid presence update (tracks who is online right now in real time)
       if (event === 'presence_update') {
         if (data.members) {
           setMembers(data.members);
-          // Sync current user status if changed
           const me = data.members.find((m: User) => m.id === storage.getCurrentUser()?.id);
           if (me) {
             setCurrentUser(me);
@@ -118,9 +135,24 @@ export default function App() {
         const newMsg = data.message;
         setCommunityMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
+          const updated = [...prev, newMsg];
+          storage.saveCommunityMessages(updated);
+          return updated;
         });
         sound.playReceive();
+      }
+
+      // Direct personal message
+      if (event === 'new_direct_message') {
+        const msg = data.message;
+        if (msg) {
+          const currentId = storage.getCurrentUser()?.id;
+          const otherUserId = msg.senderId === currentId ? msg.recipientId : msg.senderId;
+          if (otherUserId) {
+            storage.addPersonalMessage(otherUserId, msg);
+          }
+          sound.playChime();
+        }
       }
 
       // Super admin changed a member's role
@@ -234,10 +266,12 @@ export default function App() {
       timestamp: Date.now(),
     };
 
-    // 1. Immediate optimistic UI render (0 milliseconds)
+    // 1. Immediate optimistic UI render (0 milliseconds) & local storage save
     setCommunityMessages((prev) => {
       if (prev.some((m) => m.id === newMsg.id)) return prev;
-      return [...prev, newMsg];
+      const updated = [...prev, newMsg];
+      storage.saveCommunityMessages(updated);
+      return updated;
     });
 
     // 2. Immediate dual-channel network dispatch (WS + REST)
