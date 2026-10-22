@@ -180,7 +180,7 @@ setInterval(() => {
       timestamp: now,
     });
   }
-}, 11000); // Exact 11-second real-time tracking cycle
+}, 1000); // Rapid 1-second real-time tracking cycle
 
 // REST API Endpoints
 app.get('/api/state', (req, res) => {
@@ -280,6 +280,110 @@ app.post('/api/heartbeat', (req, res) => {
   }
 });
 
+// Rapid Instant Community Chat Endpoint
+app.post('/api/chat/community', (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.senderId) {
+    return res.status(400).json({ error: 'Missing message or senderId' });
+  }
+
+  let sender = db.members.find((m) => m.id === message.senderId);
+  if (!sender) {
+    sender = {
+      id: message.senderId,
+      name: message.senderName || 'Community Member',
+      communityCode: message.senderRole === 'super_admin' ? '00099' : message.senderRole === 'power' ? '00011' : '80504',
+      role: message.senderRole || 'normal',
+      avatar: message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+      walletBalance: 10000,
+      status: 'online',
+      lastSeen: Date.now(),
+      joinedAt: new Date().toISOString().split('T')[0],
+      bio: 'Real verified member in VC Community network.',
+    };
+    db.members.push(sender);
+  } else {
+    sender.lastSeen = Date.now();
+    sender.status = 'online';
+  }
+
+  const verifiedMsg: ChatMessage = {
+    id: message.id || ('msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
+    senderId: sender.id,
+    senderName: sender.name,
+    senderRole: sender.role,
+    senderAvatar: sender.avatar,
+    text: message.text,
+    imageUrl: message.imageUrl,
+    timestamp: message.timestamp || Date.now(),
+  };
+
+  if (!db.communityMessages.some((m) => m.id === verifiedMsg.id)) {
+    db.communityMessages.push(verifiedMsg);
+    saveDB();
+  }
+
+  broadcast({
+    type: 'new_community_message',
+    message: verifiedMsg,
+  });
+
+  res.json({ success: true, message: verifiedMsg });
+});
+
+// Rapid Instant Direct Chat Endpoint
+app.post('/api/chat/direct', (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.senderId || !message.recipientId) {
+    return res.status(400).json({ error: 'Missing message, senderId or recipientId' });
+  }
+
+  let sender = db.members.find((m) => m.id === message.senderId);
+  if (!sender) {
+    sender = {
+      id: message.senderId,
+      name: message.senderName || 'Community Member',
+      communityCode: message.senderRole === 'super_admin' ? '00099' : message.senderRole === 'power' ? '00011' : '80504',
+      role: message.senderRole || 'normal',
+      avatar: message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+      walletBalance: 10000,
+      status: 'online',
+      lastSeen: Date.now(),
+      joinedAt: new Date().toISOString().split('T')[0],
+      bio: 'Real verified member in VC Community network.',
+    };
+    db.members.push(sender);
+  } else {
+    sender.lastSeen = Date.now();
+    sender.status = 'online';
+  }
+
+  const verifiedDirectMsg: ChatMessage = {
+    id: message.id || ('dm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
+    senderId: sender.id,
+    senderName: sender.name,
+    senderRole: sender.role,
+    senderAvatar: sender.avatar,
+    recipientId: message.recipientId,
+    text: message.text,
+    imageUrl: message.imageUrl,
+    timestamp: message.timestamp || Date.now(),
+    isDirect: true,
+  };
+
+  if (!db.directMessages.some((m) => m.id === verifiedDirectMsg.id)) {
+    db.directMessages.push(verifiedDirectMsg);
+    saveDB();
+  }
+
+  broadcast({
+    type: 'new_direct_message',
+    message: verifiedDirectMsg,
+  });
+
+  res.json({ success: true, message: verifiedDirectMsg });
+});
+
 // WebSocket Connection Management
 wss.on('connection', (ws) => {
   clients.set(ws, {});
@@ -323,29 +427,47 @@ wss.on('connection', (ws) => {
       if (data.type === 'send_community_message') {
         const { message } = data;
         if (message && message.senderId) {
-          const sender = db.members.find((m) => m.id === message.senderId);
-          if (sender) {
+          let sender = db.members.find((m) => m.id === message.senderId);
+          if (!sender) {
+            sender = {
+              id: message.senderId,
+              name: message.senderName || 'Community Member',
+              communityCode: message.senderRole === 'super_admin' ? '00099' : message.senderRole === 'power' ? '00011' : '80504',
+              role: message.senderRole || 'normal',
+              avatar: message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+              walletBalance: 10000,
+              status: 'online',
+              lastSeen: Date.now(),
+              joinedAt: new Date().toISOString().split('T')[0],
+              bio: 'Real verified member in VC Community network.',
+            };
+            db.members.push(sender);
+          } else {
             sender.lastSeen = Date.now();
             sender.status = 'online';
-            // Authoritative server-stamped message
-            const verifiedMsg: ChatMessage = {
-              id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-              senderId: sender.id,
-              senderName: sender.name,
-              senderRole: sender.role,
-              senderAvatar: sender.avatar,
-              text: message.text,
-              imageUrl: message.imageUrl,
-              timestamp: Date.now(),
-            };
+          }
+
+          // Authoritative server-stamped message
+          const verifiedMsg: ChatMessage = {
+            id: message.id || ('msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
+            senderId: sender.id,
+            senderName: sender.name,
+            senderRole: sender.role,
+            senderAvatar: sender.avatar,
+            text: message.text,
+            imageUrl: message.imageUrl,
+            timestamp: message.timestamp || Date.now(),
+          };
+
+          if (!db.communityMessages.some((m) => m.id === verifiedMsg.id)) {
             db.communityMessages.push(verifiedMsg);
             saveDB();
-
-            broadcast({
-              type: 'new_community_message',
-              message: verifiedMsg,
-            });
           }
+
+          broadcast({
+            type: 'new_community_message',
+            message: verifiedMsg,
+          });
         }
       }
 
@@ -379,30 +501,48 @@ wss.on('connection', (ws) => {
       if (data.type === 'send_direct_message') {
         const { message } = data;
         if (message && message.senderId && message.recipientId) {
-          const sender = db.members.find((m) => m.id === message.senderId);
-          if (sender) {
+          let sender = db.members.find((m) => m.id === message.senderId);
+          if (!sender) {
+            sender = {
+              id: message.senderId,
+              name: message.senderName || 'Community Member',
+              communityCode: message.senderRole === 'super_admin' ? '00099' : message.senderRole === 'power' ? '00011' : '80504',
+              role: message.senderRole || 'normal',
+              avatar: message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+              walletBalance: 10000,
+              status: 'online',
+              lastSeen: Date.now(),
+              joinedAt: new Date().toISOString().split('T')[0],
+              bio: 'Real verified member in VC Community network.',
+            };
+            db.members.push(sender);
+          } else {
             sender.lastSeen = Date.now();
             sender.status = 'online';
-            const verifiedDirectMsg: ChatMessage = {
-              id: 'dm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-              senderId: sender.id,
-              senderName: sender.name,
-              senderRole: sender.role,
-              senderAvatar: sender.avatar,
-              recipientId: message.recipientId,
-              text: message.text,
-              imageUrl: message.imageUrl,
-              timestamp: Date.now(),
-              isDirect: true,
-            };
+          }
+
+          const verifiedDirectMsg: ChatMessage = {
+            id: message.id || ('dm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
+            senderId: sender.id,
+            senderName: sender.name,
+            senderRole: sender.role,
+            senderAvatar: sender.avatar,
+            recipientId: message.recipientId,
+            text: message.text,
+            imageUrl: message.imageUrl,
+            timestamp: message.timestamp || Date.now(),
+            isDirect: true,
+          };
+
+          if (!db.directMessages.some((m) => m.id === verifiedDirectMsg.id)) {
             db.directMessages.push(verifiedDirectMsg);
             saveDB();
-
-            broadcast({
-              type: 'new_direct_message',
-              message: verifiedDirectMsg,
-            });
           }
+
+          broadcast({
+            type: 'new_direct_message',
+            message: verifiedDirectMsg,
+          });
         }
       }
 

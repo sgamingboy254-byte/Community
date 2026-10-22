@@ -219,19 +219,29 @@ export default function App() {
     return members.filter((m) => m.status === 'online').length;
   }, [members]);
 
-  // Handle Real-Time Community message sending
+  // Handle Real-Time Community message sending with 0ms rapid millisecond optimistic dispatch
   const handleSendCommunityMessage = (text: string, imageUrl?: string) => {
     if (!currentUser) return;
 
-    // Send through server-authoritative WebSocket
-    network.send({
-      type: 'send_community_message',
-      message: {
-        senderId: currentUser.id,
-        text: text || undefined,
-        imageUrl: imageUrl || undefined,
-      },
+    const newMsg: ChatMessage = {
+      id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderRole: currentUser.role,
+      senderAvatar: currentUser.avatar,
+      text: text || undefined,
+      imageUrl: imageUrl || undefined,
+      timestamp: Date.now(),
+    };
+
+    // 1. Immediate optimistic UI render (0 milliseconds)
+    setCommunityMessages((prev) => {
+      if (prev.some((m) => m.id === newMsg.id)) return prev;
+      return [...prev, newMsg];
     });
+
+    // 2. Immediate dual-channel network dispatch (WS + REST)
+    network.sendCommunityMessage(newMsg);
 
     sound.playSend();
   };
@@ -300,7 +310,7 @@ export default function App() {
             </span>
             <span className="hidden sm:inline text-zinc-400">·</span>
             <span className="hidden sm:inline text-zinc-400 font-mono">
-              11s live presence tracker active (No bots)
+              Rapid real-time sync active (0ms instant chat)
             </span>
 
             {/* Independent Phone Network Status Button */}

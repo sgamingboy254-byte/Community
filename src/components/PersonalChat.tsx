@@ -114,12 +114,10 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
     };
 
     storage.addPersonalMessage(selectedMember.id, newMsg);
+    setMessages((prev) => [...prev, newMsg]);
     
-    // Broadcast real-time direct message through server
-    network.send({
-      type: 'send_direct_message',
-      message: newMsg,
-    });
+    // Broadcast real-time direct message through server (dual WS + HTTP)
+    network.sendDirectMessage(newMsg);
 
     setInputText('');
     setSelectedImage(null);

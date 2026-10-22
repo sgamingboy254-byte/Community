@@ -1,0 +1,53 @@
+{
+  "members": [
+    {
+      "id": "test-user",
+      "name": "RapidTester",
+      "communityCode": "00011",
+      "role": "power",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
+      "walletBalance": 10000,
+      "status": "online",
+      "lastSeen": 1792658641809,
+      "joinedAt": "2026-10-22",
+      "bio": "Real verified member in VC Community network."
+    }
+  ],
+  "communityMessages": [
+    {
+      "id": "genesis-welcome",
+      "senderId": "system",
+      "senderName": "VC Community System",
+      "senderRole": "super_admin",
+      "senderAvatar": "",
+      "text": "⚡ VC Community Online Network Initialized. Real-time presence tracking active every 11 seconds. Only real connected persons are tracked.",
+      "timestamp": 1792658637337,
+      "isSystemAnnouncement": true
+    },
+    {
+      "id": "msg-1792658641810-90s0",
+      "senderId": "test-user",
+      "senderName": "RapidTester",
+      "senderRole": "power",
+      "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
+      "text": "Rapid millisecond test",
+      "timestamp": 1792658641810
+    }
+  ],
+  "directMessages": [],
+  "transactions": [],
+  "graphPoints": [
+    {
+      "timeLabel": "Genesis",
+      "value": 50000,
+      "timestamp": 1792572237337,
+      "change": 0
+    },
+    {
+      "timeLabel": "Current",
+      "value": 75000,
+      "timestamp": 1792658637337,
+      "change": 25000
+    }
+  ]
+}
