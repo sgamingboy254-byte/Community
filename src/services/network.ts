@@ -1,4 +1,4 @@
-import { User, ChatMessage, WalletTransaction, GraphDataPoint } from '../types';
+import { User, ChatMessage, WalletTransaction, GraphDataPoint, Product, Order } from '../types';
 
 type Listener = (event: string, data: any) => void;
 
@@ -333,6 +333,8 @@ class NetworkService {
     directMessages: ChatMessage[];
     transactions: WalletTransaction[];
     graphPoints: GraphDataPoint[];
+    products: Product[];
+    orders: Order[];
   }> {
     try {
       const res = await fetch('/api/state');
@@ -346,7 +348,119 @@ class NetworkService {
       directMessages: [],
       transactions: [],
       graphPoints: [],
+      products: [],
+      orders: [],
     };
+  }
+
+  // Fetch all products
+  public async fetchProducts(): Promise<Product[]> {
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        return data.products || [];
+      }
+    } catch {}
+    return [];
+  }
+
+  // Super Admin: Add Product
+  public async addProduct(
+    adminId: string,
+    productData: {
+      name: string;
+      price: number;
+      image: string;
+      description?: string;
+      category?: string;
+      stock?: number;
+    }
+  ): Promise<{ success: boolean; product?: Product; error?: string }> {
+    // 1. Dual dispatch via WebSocket if open
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'add_product',
+          adminId,
+          ...productData,
+        })
+      );
+    }
+
+    // 2. HTTP REST dispatch
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, ...productData }),
+      });
+      const data = await res.json();
+      if (res.ok && data.product) {
+        return { success: true, product: data.product };
+      }
+      return { success: false, error: data.error || 'Failed to add product' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network request failed' };
+    }
+  }
+
+  // Super Admin: Delete Product
+  public async deleteProduct(adminId: string, productId: string): Promise<boolean> {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'delete_product',
+          adminId,
+          productId,
+        })
+      );
+    }
+
+    try {
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-id': adminId },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // Buy Product with VC Currency or Cash on Delivery (COD)
+  public async placeOrder(orderData: {
+    buyerId: string;
+    productId: string;
+    quantity: number;
+    paymentMethod: 'vc_currency' | 'cash_on_delivery';
+    shippingAddress?: string;
+    contactNumber?: string;
+  }): Promise<{ success: boolean; order?: Order; error?: string; newBalance?: number }> {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        return {
+          success: true,
+          order: data.order,
+          newBalance: data.newBalance,
+        };
+      }
+      return {
+        success: false,
+        error: data.error || 'Checkout failed',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || 'Connection error during checkout',
+      };
+    }
   }
 
   public async registerUser(

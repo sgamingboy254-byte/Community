@@ -21,6 +21,8 @@ export interface ChatMessage {
   senderAvatar: string;
   text?: string;
   imageUrl?: string;
+  audioUrl?: string; // Base64 audio string (data:audio/webm;base64,...)
+  audioDuration?: number; // Duration in seconds
   timestamp: number;
   isDirect?: boolean;
   recipientId?: string; // For personal chat
@@ -59,4 +61,36 @@ export interface AppSettings {
   chatBubbleTheme: ChatBubbleTheme;
   smoothAnimations: boolean;
   soundEnabled: boolean;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  description?: string;
+  category?: string;
+  stock?: number;
+  createdBy: string;
+  creatorName: string;
+  createdAt: number;
+}
+
+export type PaymentMethod = 'vc_currency' | 'cash_on_delivery';
+
+export interface Order {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  price: number;
+  quantity: number;
+  totalAmount: number;
+  paymentMethod: PaymentMethod;
+  status: 'paid' | 'pending_cod' | 'delivered';
+  timestamp: number;
+  shippingAddress?: string;
+  contactNumber?: string;
 }

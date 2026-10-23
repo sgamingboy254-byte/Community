@@ -1,4 +1,4 @@
-import { User, ChatMessage, WalletTransaction, GraphDataPoint, AppSettings, UserRole } from '../types';
+import { User, ChatMessage, WalletTransaction, GraphDataPoint, AppSettings, UserRole, Product, Order } from '../types';
 import { network } from './network';
 
 export const COMMUNITY_CODES = {
@@ -34,6 +34,52 @@ export const DEFAULT_AVATARS = [
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
   'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
   'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&h=200&fit=crop&crop=faces&auto=format&q=80',
+];
+
+// Sample preset product images for Super Admin to quickly pick when adding products
+export const SAMPLE_PRODUCT_PRESETS = [
+  {
+    name: 'VC Gold Hologram Pass',
+    price: 2500,
+    category: 'Digital Perks',
+    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+    description: 'Exclusive holographic VIP card with instant lounge access & sparkling badge glow.',
+  },
+  {
+    name: 'Cybernetic Power Ring',
+    price: 4800,
+    category: 'Hardware',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80',
+    description: 'Titanium cybernetic ring embedded with high-frequency quantum neon glow.',
+  },
+  {
+    name: 'Quantum Neural Shades',
+    price: 7200,
+    category: 'Wearables',
+    image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&auto=format&fit=crop&q=80',
+    description: 'Aero-glass heads-up display sunglasses with real-time VC ticker and mesh HUD.',
+  },
+  {
+    name: 'Titanium Genesis Card',
+    price: 15000,
+    category: 'Collector',
+    image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=80',
+    description: 'Ultra-rare collector piece granting maximum community privileges and cashback.',
+  },
+  {
+    name: 'Pro Wireless Audio Pods',
+    price: 3600,
+    category: 'Hardware',
+    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80',
+    description: 'Noise-cancelling lossless earbuds tuned for acoustic clarity and bass.',
+  },
+  {
+    name: 'Smart Sapphire Watch',
+    price: 9500,
+    category: 'Wearables',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
+    description: 'Sapphire crystal smart chronograph with biometric health sensors and VC wallet.',
+  },
 ];
 
 // Sample colourful images for community and personal chat
@@ -336,6 +382,40 @@ class AppStorage {
   saveSettings(settings: AppSettings) {
     if (typeof window === 'undefined') return;
     localStorage.setItem('vc_settings', JSON.stringify(settings));
+    this.postSync();
+  }
+
+  getProducts(): Product[] {
+    if (typeof window === 'undefined') return [];
+    const data = localStorage.getItem('vc_products');
+    if (!data) return [];
+    try {
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  saveProducts(products: Product[]) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('vc_products', JSON.stringify(products));
+    this.postSync();
+  }
+
+  getOrders(): Order[] {
+    if (typeof window === 'undefined') return [];
+    const data = localStorage.getItem('vc_orders');
+    if (!data) return [];
+    try {
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  saveOrders(orders: Order[]) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('vc_orders', JSON.stringify(orders));
     this.postSync();
   }
 

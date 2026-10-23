@@ -16,10 +16,15 @@ import {
   Users,
   Filter,
   CheckCircle2,
-  Radio
+  Radio,
+  Mic,
+  MicOff,
+  Square,
+  Trash2
 } from 'lucide-react';
 import { ChatMessage, User, ThemeMode } from '../types';
 import { getRoleTitle, SAMPLE_CHAT_IMAGES, storage } from '../services/storage';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { network } from '../services/network';
 import { sound } from '../utils/audio';
 
@@ -44,6 +49,128 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Microphone API: Voice Note Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordedAudioBase64, setRecordedAudioBase64] = useState<string | null>(null);
+  const [recordedAudioDuration, setRecordedAudioDuration] = useState(0);
+  const [micError, setMicError] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // Start recording using the Microphone API
+  const startRecording = async () => {
+    setMicError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setMicError('Microphone API is not supported in this browser.');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      const mimeTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'];
+      let selectedMimeType = '';
+      for (const mime of mimeTypes) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mime)) {
+          selectedMimeType = mime;
+          break;
+        }
+      }
+
+      const recorder = selectedMimeType
+        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: selectedMimeType || 'audio/webm',
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setRecordedAudioBase64(base64String);
+        };
+        reader.readAsDataURL(audioBlob);
+
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      setRecordingDuration(0);
+      sound.playPop();
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Microphone access error:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setMicError('Microphone permission was denied. Please allow microphone access to record voice notes.');
+      } else {
+        setMicError('Microphone error: ' + (err.message || 'Unable to access device mic'));
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setRecordedAudioDuration(recordingDuration);
+    setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    sound.playPop();
+  };
+
+  const cancelRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingDuration(0);
+    setRecordedAudioBase64(null);
+    setRecordedAudioDuration(0);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    sound.playPop();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
+
   // Keep selectedMember up to date if member details update in real-time
   useEffect(() => {
     if (selectedMember) {
@@ -60,6 +187,7 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
   useEffect(() => {
     if (selectedMember) {
       setMessages(storage.getPersonalMessages(selectedMember.id));
+      cancelRecording();
     }
   }, [selectedMember]);
 
@@ -99,7 +227,7 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMember || (!inputText.trim() && !selectedImage)) return;
+    if (!selectedMember || (!inputText.trim() && !selectedImage && !recordedAudioBase64)) return;
 
     const newMsg: ChatMessage = {
       id: 'dm-' + Date.now(),
@@ -109,6 +237,8 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
       senderAvatar: currentUser.avatar,
       text: inputText.trim() || undefined,
       imageUrl: selectedImage || undefined,
+      audioUrl: recordedAudioBase64 || undefined,
+      audioDuration: recordedAudioDuration || undefined,
       timestamp: Date.now(),
       isDirect: true,
       recipientId: selectedMember.id,
@@ -122,6 +252,8 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
 
     setInputText('');
     setSelectedImage(null);
+    setRecordedAudioBase64(null);
+    setRecordedAudioDuration(0);
     setShowImagePicker(false);
     sound.playSend();
   };
@@ -452,6 +584,16 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                                 </button>
                               </div>
                             )}
+
+                            {msg.audioUrl && (
+                              <div className="mt-2">
+                                <VoiceNotePlayer
+                                  audioUrl={msg.audioUrl}
+                                  durationSeconds={msg.audioDuration}
+                                  isSender={isMine}
+                                />
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-1 px-1">
                             <span className="text-[10px] text-zinc-400 font-mono">
@@ -547,6 +689,124 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                 )}
               </AnimatePresence>
 
+              {/* Mic Permission Error Alert */}
+              <AnimatePresence>
+                {micError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    className="p-2 mx-3 mb-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MicOff className="w-4 h-4 shrink-0" />
+                      <span>{micError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMicError(null)}
+                      className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-500 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Live Voice Recording Studio Dock */}
+              <AnimatePresence>
+                {isRecording && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    className="p-3 mx-3 mb-2 rounded-2xl glass-panel border border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-500/15 backdrop-blur-xl flex items-center justify-between gap-3 shadow-xl"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-3.5 w-3.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500"></span>
+                      </span>
+                      <span className="text-xs font-bold text-rose-600 dark:text-rose-400 font-mono">
+                        Recording Voice Note... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+
+                    {/* Live Equalizer bars */}
+                    <div className="flex items-center gap-1 h-5">
+                      {[40, 80, 50, 100, 60, 90, 70, 85].map((h, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            height: `${Math.max(25, Math.sin(recordingDuration * 4 + i) * 35 + 55)}%`,
+                          }}
+                          className="w-1 bg-rose-500 rounded-full animate-pulse transition-all duration-150"
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelRecording}
+                        className="p-2 rounded-xl bg-white/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-rose-500 transition-colors shadow-sm cursor-pointer"
+                        title="Cancel & discard recording"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                        title="Stop recording and keep voice note"
+                      >
+                        <Square className="w-3.5 h-3.5 fill-current" />
+                        <span>Done</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Recorded Voice Note Ready To Send Preview */}
+              <AnimatePresence>
+                {recordedAudioBase64 && !isRecording && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="p-3 mx-3 mb-2 rounded-2xl glass-panel border border-indigo-400/40 bg-indigo-50/80 dark:bg-indigo-950/40 flex items-center justify-between gap-3 shadow-lg"
+                  >
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <span className="p-2 rounded-xl bg-indigo-600 text-white shrink-0 shadow-sm">
+                        <Mic className="w-4 h-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 block truncate">
+                          Voice Note Ready ({recordedAudioDuration}s)
+                        </span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+                          Ready to send as base64 audio. Add text or click Send!
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordedAudioBase64(null);
+                        setRecordedAudioDuration(0);
+                        sound.playPop();
+                      }}
+                      className="p-2 rounded-xl bg-white/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-rose-500 transition-colors cursor-pointer"
+                      title="Discard voice note"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Message Input Dock */}
               <form onSubmit={handleSendMessage} className="p-3 border-t border-white/30 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md flex items-center gap-2">
                 <input
@@ -575,18 +835,38 @@ export const PersonalChat: React.FC<PersonalChatProps> = ({ currentUser, members
                   <ImageIcon className="w-4 h-4" />
                 </button>
 
+                {/* Record Voice Note Button (Microphone API) */}
+                <button
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`p-2.5 rounded-xl border transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer ${
+                    isRecording
+                      ? 'border-rose-500 bg-rose-500 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-400/50'
+                      : recordedAudioBase64
+                      ? 'border-indigo-500 bg-indigo-600 text-white shadow-indigo-500/30 ring-2 ring-indigo-400/40'
+                      : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-rose-600 dark:text-rose-400 hover:border-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                  }`}
+                  title={isRecording ? 'Click to finish recording voice note' : 'Record voice note (Microphone API)'}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+
                 <input
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Direct message to ${selectedMember.name}...`}
+                  placeholder={
+                    recordedAudioBase64
+                      ? 'Add text to your voice note (optional)...'
+                      : `Direct message to ${selectedMember.name}...`
+                  }
                   className="flex-1 px-4 py-2.5 rounded-xl glass-input text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all shadow-inner"
                 />
 
                 <button
                   type="submit"
-                  disabled={!inputText.trim() && !selectedImage}
-                  className="p-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-md transition-all flex items-center justify-center font-bold text-xs"
+                  disabled={!inputText.trim() && !selectedImage && !recordedAudioBase64}
+                  className="p-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-md transition-all flex items-center justify-center font-bold text-xs cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                 </button>

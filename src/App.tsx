@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Radio } from 'lucide-react';
-import { User, ChatMessage, WalletTransaction, GraphDataPoint, AppSettings } from './types';
+import { User, ChatMessage, WalletTransaction, GraphDataPoint, AppSettings, Product, Order } from './types';
 import { storage } from './services/storage';
 import { network } from './services/network';
 import { TopNav } from './components/TopNav';
 import { CommunityChat } from './components/CommunityChat';
 import { PersonalChat } from './components/PersonalChat';
 import { WalletView } from './components/WalletView';
+import { VCCartView } from './components/VCCartView';
 import { SignInModal } from './components/SignInModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AccountsModal } from './components/AccountsModal';
@@ -51,11 +52,13 @@ export default function App() {
   const [communityMessages, setCommunityMessages] = useState<ChatMessage[]>(() => storage.getCommunityMessages());
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [graphPoints, setGraphPoints] = useState<GraphDataPoint[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => storage.getProducts());
+  const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
   const [settings, setSettings] = useState<AppSettings>(storage.getSettings());
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
   
-  // Active Tab: 'community' | 'personal' | 'wallet'
-  const [activeTab, setActiveTab] = useState<'community' | 'personal' | 'wallet'>('community');
+  // Active Tab: 'community' | 'personal' | 'wallet' | 'cart'
+  const [activeTab, setActiveTab] = useState<'community' | 'personal' | 'wallet' | 'cart'>('community');
 
   // Modals
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -92,6 +95,14 @@ export default function App() {
       }
       if (state.transactions && state.transactions.length > 0) setTransactions(state.transactions);
       if (state.graphPoints && state.graphPoints.length > 0) setGraphPoints(state.graphPoints);
+      if (state.products && state.products.length > 0) {
+        setProducts(state.products);
+        storage.saveProducts(state.products);
+      }
+      if (state.orders) {
+        setOrders(state.orders);
+        storage.saveOrders(state.orders);
+      }
     });
 
     // 3. Listen to real-time WebSocket events from the server
@@ -114,6 +125,14 @@ export default function App() {
         }
         if (data.transactions) setTransactions(data.transactions);
         if (data.graphPoints) setGraphPoints(data.graphPoints);
+        if (data.products) {
+          setProducts(data.products);
+          storage.saveProducts(data.products);
+        }
+        if (data.orders) {
+          setOrders(data.orders);
+          storage.saveOrders(data.orders);
+        }
       }
 
       // Rapid presence update (tracks who is online right now in real time)
@@ -197,6 +216,49 @@ export default function App() {
           prev.map((m) => (m.id === messageId ? { ...m, reactions } : m))
         );
       }
+
+      // Live Product added (Super Admin)
+      if (event === 'product_added') {
+        if (data.products) {
+          setProducts(data.products);
+          storage.saveProducts(data.products);
+        } else if (data.product) {
+          setProducts((prev) => [data.product, ...prev]);
+        }
+        if (data.message) {
+          setCommunityMessages((prev) => [...prev, data.message]);
+        }
+        sound.playChime();
+      }
+
+      // Product deleted (Super Admin)
+      if (event === 'product_deleted') {
+        if (data.products) {
+          setProducts(data.products);
+          storage.saveProducts(data.products);
+        } else if (data.productId) {
+          setProducts((prev) => prev.filter((p) => p.id !== data.productId));
+        }
+      }
+
+      // Order placed (Buyer bought item)
+      if (event === 'order_placed') {
+        if (data.order) {
+          setOrders((prev) => [data.order, ...prev]);
+        }
+        if (data.members) setMembers(data.members);
+        if (data.products) {
+          setProducts(data.products);
+          storage.saveProducts(data.products);
+        }
+        if (data.transactions) setTransactions(data.transactions);
+        if (data.communityMessages) setCommunityMessages(data.communityMessages);
+        const current = storage.getCurrentUser();
+        if (current && data.buyer && current.id === data.buyer.id) {
+          setCurrentUser(data.buyer);
+          storage.setCurrentUser(data.buyer);
+        }
+      }
     });
 
     return () => {
@@ -257,7 +319,7 @@ export default function App() {
   }, [members]);
 
   // Handle Real-Time Community message sending with 0ms rapid millisecond optimistic dispatch
-  const handleSendCommunityMessage = (text: string, imageUrl?: string) => {
+  const handleSendCommunityMessage = (text: string, imageUrl?: string, audioUrl?: string, audioDuration?: number) => {
     if (!currentUser) return;
 
     const newMsg: ChatMessage = {
@@ -268,6 +330,8 @@ export default function App() {
       senderAvatar: currentUser.avatar,
       text: text || undefined,
       imageUrl: imageUrl || undefined,
+      audioUrl: audioUrl || undefined,
+      audioDuration: audioDuration || undefined,
       timestamp: Date.now(),
     };
 
@@ -446,6 +510,32 @@ export default function App() {
                 graphPoints={graphPoints}
                 themeMode={settings.themeMode}
                 onUpdateCurrentUser={setCurrentUser}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'cart' && currentUser && (
+            <motion.div
+              key="cart"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: settings.smoothAnimations ? 0.22 : 0.1 }}
+            >
+              <VCCartView
+                currentUser={currentUser}
+                products={products}
+                orders={orders}
+                themeMode={settings.themeMode}
+                onUpdateCurrentUser={setCurrentUser}
+                onRefreshProducts={() => {
+                  network.fetchProducts().then((prods) => {
+                    if (prods && prods.length > 0) {
+                      setProducts(prods);
+                      storage.saveProducts(prods);
+                    }
+                  });
+                }}
               />
             </motion.div>
           )}

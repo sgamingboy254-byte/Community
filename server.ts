@@ -64,11 +64,15 @@ export interface ChatMessage {
   senderAvatar: string;
   text?: string;
   imageUrl?: string;
+  audioUrl?: string; // Base64 audio string
+  audioDuration?: number; // duration in seconds
   timestamp: number;
   isDirect?: boolean;
   recipientId?: string;
   isSystemAnnouncement?: boolean;
   reactions?: Record<string, string[]>;
+  hops?: number;
+  route?: string[];
 }
 
 export interface WalletTransaction {
@@ -88,12 +92,46 @@ export interface GraphDataPoint {
   change: number;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  description?: string;
+  category?: string;
+  stock?: number;
+  createdBy: string;
+  creatorName: string;
+  createdAt: number;
+}
+
+export type PaymentMethod = 'vc_currency' | 'cash_on_delivery';
+
+export interface Order {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  price: number;
+  quantity: number;
+  totalAmount: number;
+  paymentMethod: PaymentMethod;
+  status: 'paid' | 'pending_cod' | 'delivered';
+  timestamp: number;
+  shippingAddress?: string;
+  contactNumber?: string;
+}
+
 interface DatabaseState {
   members: User[];
   communityMessages: ChatMessage[];
   directMessages: ChatMessage[];
   transactions: WalletTransaction[];
   graphPoints: GraphDataPoint[];
+  products: Product[];
+  orders: Order[];
 }
 
 function getInitialState(): DatabaseState {
@@ -119,6 +157,57 @@ function getInitialState(): DatabaseState {
       { timeLabel: 'Genesis', value: 50000, timestamp: now - 3600000 * 24, change: 0 },
       { timeLabel: 'Current', value: 75000, timestamp: now, change: 25000 },
     ],
+    products: [
+      {
+        id: 'prod-gold-pass',
+        name: 'VC Holographic Gold Pass',
+        price: 2500,
+        image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+        description: 'Exclusive holographic VIP card with instant lounge access & sparkling badge glow.',
+        category: 'Digital Perks',
+        stock: 50,
+        createdBy: 'system-super-admin',
+        creatorName: 'Super Admin',
+        createdAt: now - 3600000 * 5,
+      },
+      {
+        id: 'prod-cyber-ring',
+        name: 'Supercharged Cyber Power Ring',
+        price: 4800,
+        image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80',
+        description: 'Titanium cybernetic ring embedded with high-frequency quantum neon glow.',
+        category: 'Hardware',
+        stock: 25,
+        createdBy: 'system-super-admin',
+        creatorName: 'Super Admin',
+        createdAt: now - 3600000 * 3,
+      },
+      {
+        id: 'prod-neural-shades',
+        name: 'Quantum Neural Shades (Aero Edition)',
+        price: 7200,
+        image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&auto=format&fit=crop&q=80',
+        description: 'Aero-glass heads-up display sunglasses with real-time VC ticker and mesh HUD.',
+        category: 'Wearables',
+        stock: 15,
+        createdBy: 'system-super-admin',
+        creatorName: 'Super Admin',
+        createdAt: now - 3600000,
+      },
+      {
+        id: 'prod-genesis-card',
+        name: 'Titanium Genesis Super Card',
+        price: 15000,
+        image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=80',
+        description: 'Ultra-rare collector piece granting maximum community privileges and cashback.',
+        category: 'Collector',
+        stock: 10,
+        createdBy: 'system-super-admin',
+        creatorName: 'Super Admin',
+        createdAt: now,
+      },
+    ],
+    orders: [],
   };
 }
 
@@ -128,7 +217,13 @@ let db: DatabaseState = getInitialState();
 if (fs.existsSync(DB_FILE)) {
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    db = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    db = {
+      ...getInitialState(),
+      ...parsed,
+      products: parsed.products && parsed.products.length > 0 ? parsed.products : getInitialState().products,
+      orders: parsed.orders || [],
+    };
     // Ensure all fake seed members are cleaned out if any were saved earlier
     db.members = db.members.filter(
       (m) => !m.id.startsWith('user-super-admin-alex') && !m.id.startsWith('user-power-') && !m.id.startsWith('user-normal-')
@@ -201,8 +296,199 @@ app.get('/api/state', (req, res) => {
     directMessages: db.directMessages,
     transactions: db.transactions,
     graphPoints: db.graphPoints,
+    products: db.products,
+    orders: db.orders,
   });
 });
+
+// Products: Get all products in the VC Cart & Market
+app.get('/api/products', (req, res) => {
+  res.json({ products: db.products });
+});
+
+// Products: Super Admin ONLY can add new products!
+app.post('/api/products', (req, res) => {
+  const { adminId, name, price, image, description, category, stock } = req.body;
+  if (!name || price === undefined || price === null || !image) {
+    return res.status(400).json({ error: 'Name, price, and image are required.' });
+  }
+
+  const numPrice = Number(price);
+  if (isNaN(numPrice) || numPrice < 0) {
+    return res.status(400).json({ error: 'Price must be a non-negative number.' });
+  }
+
+  // Check admin authorization
+  const admin = db.members.find((m) => m.id === adminId);
+  const isSuperAdmin = admin ? admin.role === 'super_admin' : req.body.creatorRole === 'super_admin';
+  if (!isSuperAdmin) {
+    return res.status(403).json({ error: 'Access denied. Only Super Admin has special ability to add products.' });
+  }
+
+  const newProduct: Product = {
+    id: 'prod-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    name: name.trim(),
+    price: Math.round(numPrice),
+    image: image.trim(),
+    description: description?.trim() || 'Exclusive verified VC Cart product.',
+    category: category?.trim() || 'General',
+    stock: typeof stock === 'number' ? stock : 50,
+    createdBy: admin?.id || 'super-admin',
+    creatorName: admin?.name || 'Super Admin',
+    createdAt: Date.now(),
+  };
+
+  db.products.unshift(newProduct);
+
+  // Broadcast announcement in community chat
+  const announcementMsg: ChatMessage = {
+    id: 'prod-ann-' + Date.now(),
+    senderId: 'system',
+    senderName: 'VC Cart Market',
+    senderRole: 'super_admin',
+    senderAvatar: admin?.avatar || '',
+    text: `🛒 New Product Added by Super Admin: "${newProduct.name}" for ${newProduct.price.toLocaleString()} VC! Check it out in VC Cart!`,
+    timestamp: Date.now(),
+    isSystemAnnouncement: true,
+  };
+  db.communityMessages.push(announcementMsg);
+
+  saveDB();
+
+  broadcast({
+    type: 'product_added',
+    product: newProduct,
+    message: announcementMsg,
+    products: db.products,
+  });
+
+  res.json({ success: true, product: newProduct });
+});
+
+// Products: Delete product (Super Admin only)
+app.delete('/api/products/:id', (req, res) => {
+  const { id } = req.params;
+  const adminId = req.headers['x-admin-id'] as string;
+  const admin = db.members.find((m) => m.id === adminId && m.role === 'super_admin');
+  if (!admin) {
+    return res.status(403).json({ error: 'Only Super Admin can remove products.' });
+  }
+
+  db.products = db.products.filter((p) => p.id !== id);
+  saveDB();
+
+  broadcast({
+    type: 'product_deleted',
+    productId: id,
+    products: db.products,
+  });
+
+  res.json({ success: true, productId: id });
+});
+
+// Orders: Buy product with VC Currency OR Cash on Delivery (COD)
+app.post('/api/orders', (req, res) => {
+  const { buyerId, productId, quantity, paymentMethod, shippingAddress, contactNumber } = req.body;
+  if (!buyerId || !productId) {
+    return res.status(400).json({ error: 'Buyer ID and Product ID are required.' });
+  }
+
+  const buyer = db.members.find((m) => m.id === buyerId);
+  if (!buyer) {
+    return res.status(404).json({ error: 'Buyer account not found.' });
+  }
+
+  const product = db.products.find((p) => p.id === productId);
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found.' });
+  }
+
+  const qty = Math.max(1, Number(quantity) || 1);
+  const totalAmount = product.price * qty;
+  const method: PaymentMethod = paymentMethod === 'cash_on_delivery' ? 'cash_on_delivery' : 'vc_currency';
+
+  // 1. If paying with VC Currency, verify balance and deduct
+  if (method === 'vc_currency') {
+    if (buyer.walletBalance < totalAmount) {
+      return res.status(400).json({
+        error: `Insufficient VC Currency. You need ${totalAmount.toLocaleString()} VC, but only have ${buyer.walletBalance.toLocaleString()} VC.`,
+      });
+    }
+
+    buyer.walletBalance -= totalAmount;
+
+    // Record wallet transaction
+    const tx: WalletTransaction = {
+      id: 'tx-buy-' + Date.now(),
+      title: `Cart Purchase: ${product.name}`,
+      type: 'expense',
+      amount: -totalAmount,
+      timestamp: Date.now(),
+      counterpartName: 'VC Cart Store',
+      note: `Bought ${qty}x ${product.name} with VC Currency`,
+    };
+    db.transactions.unshift(tx);
+  }
+
+  // 2. Reduce stock if positive
+  if (product.stock && product.stock > 0) {
+    product.stock = Math.max(0, product.stock - qty);
+  }
+
+  const newOrder: Order = {
+    id: 'ord-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    buyerId: buyer.id,
+    buyerName: buyer.name,
+    productId: product.id,
+    productName: product.name,
+    productImage: product.image,
+    price: product.price,
+    quantity: qty,
+    totalAmount,
+    paymentMethod: method,
+    status: method === 'cash_on_delivery' ? 'pending_cod' : 'paid',
+    timestamp: Date.now(),
+    shippingAddress: shippingAddress?.trim() || 'Direct Digital Mesh Delivery',
+    contactNumber: contactNumber?.trim() || 'Verified Phone Network Peer',
+  };
+
+  db.orders.unshift(newOrder);
+
+  // Announce in community
+  const purchaseAnnouncement: ChatMessage = {
+    id: 'ann-buy-' + Date.now(),
+    senderId: 'system',
+    senderName: 'VC Cart Logistics',
+    senderRole: 'super_admin',
+    senderAvatar: buyer.avatar,
+    text: `🎉 Order Confirmed! ${buyer.name} bought ${qty}x "${product.name}" using ${
+      method === 'cash_on_delivery' ? 'Cash On Delivery (COD) 📦' : 'VC Currency 💎'
+    }!`,
+    timestamp: Date.now(),
+    isSystemAnnouncement: true,
+  };
+  db.communityMessages.push(purchaseAnnouncement);
+
+  saveDB();
+
+  broadcast({
+    type: 'order_placed',
+    order: newOrder,
+    buyer,
+    members: db.members,
+    products: db.products,
+    transactions: db.transactions,
+    communityMessages: db.communityMessages,
+  });
+
+  res.json({
+    success: true,
+    order: newOrder,
+    buyer,
+    newBalance: buyer.walletBalance,
+  });
+});
+
 
 // Authenticate / Register Real Person
 app.post('/api/auth/register', (req, res) => {
@@ -382,6 +668,10 @@ app.post('/api/chat/community', (req, res) => {
     senderAvatar: sender.avatar,
     text: message.text,
     imageUrl: message.imageUrl,
+    audioUrl: message.audioUrl,
+    audioDuration: message.audioDuration,
+    hops: message.hops,
+    route: message.route,
     timestamp: message.timestamp || Date.now(),
   };
 
@@ -434,6 +724,10 @@ app.post('/api/chat/direct', (req, res) => {
     recipientId: message.recipientId,
     text: message.text,
     imageUrl: message.imageUrl,
+    audioUrl: message.audioUrl,
+    audioDuration: message.audioDuration,
+    hops: message.hops,
+    route: message.route,
     timestamp: message.timestamp || Date.now(),
     isDirect: true,
   };
@@ -523,6 +817,10 @@ wss.on('connection', (ws) => {
             senderAvatar: sender.avatar,
             text: message.text,
             imageUrl: message.imageUrl,
+            audioUrl: message.audioUrl,
+            audioDuration: message.audioDuration,
+            hops: message.hops,
+            route: message.route,
             timestamp: message.timestamp || Date.now(),
           };
 
@@ -597,6 +895,10 @@ wss.on('connection', (ws) => {
             recipientId: message.recipientId,
             text: message.text,
             imageUrl: message.imageUrl,
+            audioUrl: message.audioUrl,
+            audioDuration: message.audioDuration,
+            hops: message.hops,
+            route: message.route,
             timestamp: message.timestamp || Date.now(),
             isDirect: true,
           };
@@ -750,6 +1052,64 @@ wss.on('connection', (ws) => {
             type: 'wallet_transfer_complete',
             members: db.members,
             transactions: db.transactions,
+          });
+        }
+      }
+
+      // Products: Add product over WS (Super Admin only)
+      if (data.type === 'add_product') {
+        const { adminId, name, price, image, description, category, stock } = data;
+        const admin = db.members.find((m) => m.id === adminId && m.role === 'super_admin');
+        if (admin && name && price !== undefined && image) {
+          const newProduct: Product = {
+            id: 'prod-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            name: name.trim(),
+            price: Math.max(0, Math.round(Number(price))),
+            image: image.trim(),
+            description: description?.trim() || 'Exclusive verified VC Cart product.',
+            category: category?.trim() || 'General',
+            stock: typeof stock === 'number' ? stock : 50,
+            createdBy: admin.id,
+            creatorName: admin.name,
+            createdAt: Date.now(),
+          };
+
+          db.products.unshift(newProduct);
+
+          const announcementMsg: ChatMessage = {
+            id: 'prod-ann-' + Date.now(),
+            senderId: 'system',
+            senderName: 'VC Cart Market',
+            senderRole: 'super_admin',
+            senderAvatar: admin.avatar,
+            text: `🛒 Super Admin added new product: "${newProduct.name}" (${newProduct.price.toLocaleString()} VC)! Now available in VC Cart!`,
+            timestamp: Date.now(),
+            isSystemAnnouncement: true,
+          };
+          db.communityMessages.push(announcementMsg);
+          saveDB();
+
+          broadcast({
+            type: 'product_added',
+            product: newProduct,
+            products: db.products,
+            message: announcementMsg,
+          });
+        }
+      }
+
+      // Products: Delete product over WS (Super Admin only)
+      if (data.type === 'delete_product') {
+        const { adminId, productId } = data;
+        const admin = db.members.find((m) => m.id === adminId && m.role === 'super_admin');
+        if (admin && productId) {
+          db.products = db.products.filter((p) => p.id !== productId);
+          saveDB();
+
+          broadcast({
+            type: 'product_deleted',
+            productId,
+            products: db.products,
           });
         }
       }

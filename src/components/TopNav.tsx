@@ -15,7 +15,8 @@ import {
   Download,
   Smartphone,
   Volume2,
-  Radio
+  Radio,
+  ShoppingCart
 } from 'lucide-react';
 import { User, UserRole, ThemeMode, NeonColor } from '../types';
 import { getRoleTitle } from '../services/storage';
@@ -23,8 +24,8 @@ import { sound } from '../utils/audio';
 
 interface TopNavProps {
   currentUser: User;
-  activeTab: 'community' | 'personal' | 'wallet';
-  onTabChange: (tab: 'community' | 'personal' | 'wallet') => void;
+  activeTab: 'community' | 'personal' | 'wallet' | 'cart';
+  onTabChange: (tab: 'community' | 'personal' | 'wallet' | 'cart') => void;
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenSuperAdminModal: () => void;
@@ -166,6 +167,23 @@ export const TopNav: React.FC<TopNavProps> = ({
             >
               <WalletIcon className="w-3.5 h-3.5" />
               <span>Wallet</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onTabChange('cart');
+                sound.playAddToCart();
+              }}
+              className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'cart'
+                  ? themeMode === 'neon'
+                    ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-amber-400'
+                    : 'bg-white dark:bg-zinc-800 text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <ShoppingCart className="w-3.5 h-3.5 text-amber-500" />
+              <span>VC Cart 🛒</span>
             </button>
           </nav>
 
@@ -492,6 +510,21 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <WalletIcon className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Wallet</span>
+        </button>
+
+        <button
+          onClick={() => {
+            onTabChange('cart');
+            sound.playAddToCart();
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+            activeTab === 'cart'
+              ? 'text-amber-500 font-bold scale-105'
+              : 'text-zinc-400 dark:text-zinc-500 font-medium'
+          }`}
+        >
+          <ShoppingCart className="w-5 h-5 mb-0.5 text-amber-500" />
+          <span className="text-[10px] tracking-tight font-bold">Cart 🛒</span>
         </button>
       </nav>
     </>

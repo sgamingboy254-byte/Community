@@ -19,7 +19,7 @@
       "role": "normal",
       "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
       "walletBalance": 10000,
-      "status": "online",
+      "status": "offline",
       "lastSeen": 1792686883023,
       "joinedAt": "2026-10-22",
       "bio": "Real verified member in VC Community network."
@@ -30,6 +30,30 @@
       "role": "power",
       "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&h=120&fit=crop",
       "status": "offline"
+    },
+    {
+      "id": "real-user-1792746917535-ulibs",
+      "name": "Shopper1",
+      "communityCode": "80504",
+      "role": "normal",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
+      "walletBalance": 5200,
+      "status": "offline",
+      "lastSeen": 1792746917535,
+      "joinedAt": "2026-10-23",
+      "bio": "Real verified member in VC Community network."
+    },
+    {
+      "id": "user-test",
+      "name": "Voice Tester",
+      "communityCode": "80504",
+      "role": "normal",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+      "walletBalance": 10000,
+      "status": "online",
+      "lastSeen": 1792748301752,
+      "joinedAt": "2026-10-23",
+      "bio": "Real verified member in VC Community network."
     }
   ],
   "communityMessages": [
@@ -60,10 +84,85 @@
       "senderAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
       "text": "Hello across phone connection!",
       "timestamp": 1792686873603
+    },
+    {
+      "id": "prod-ann-1792746909045",
+      "senderId": "system",
+      "senderName": "VC Cart Market",
+      "senderRole": "super_admin",
+      "senderAvatar": "",
+      "text": "🛒 New Product Added by Super Admin: \"Quantum Aero Laptop\" for 22,000 VC! Check it out in VC Cart!",
+      "timestamp": 1792746909055,
+      "isSystemAnnouncement": true
+    },
+    {
+      "id": "welcome-1792746917535",
+      "senderId": "system",
+      "senderName": "VC Network",
+      "senderRole": "super_admin",
+      "senderAvatar": "",
+      "text": "👋 Real member Shopper1 has joined the VC Community as Normal Person!",
+      "timestamp": 1792746917535,
+      "isSystemAnnouncement": true
+    },
+    {
+      "id": "ann-buy-1792746920799",
+      "senderId": "system",
+      "senderName": "VC Cart Logistics",
+      "senderRole": "super_admin",
+      "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
+      "text": "🎉 Order Confirmed! Shopper1 bought 1x \"VC Holographic Gold Pass\" using Cash On Delivery (COD) 📦!",
+      "timestamp": 1792746920799,
+      "isSystemAnnouncement": true
+    },
+    {
+      "id": "ann-buy-1792746925721",
+      "senderId": "system",
+      "senderName": "VC Cart Logistics",
+      "senderRole": "super_admin",
+      "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces&auto=format&q=80",
+      "text": "🎉 Order Confirmed! Shopper1 bought 1x \"Supercharged Cyber Power Ring\" using VC Currency 💎!",
+      "timestamp": 1792746925721,
+      "isSystemAnnouncement": true
+    },
+    {
+      "id": "test-voice-1",
+      "senderId": "user-test",
+      "senderName": "Voice Tester",
+      "senderRole": "normal",
+      "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+      "text": "Check my voice note!",
+      "audioUrl": "data:audio/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwH/////////FUmpZ+kBAAAAAAAAAB6vAQAAAAAAAABf4EEQc4EwQoWBAhhTgGcB/////////wVIqWfpAQAAAAAAAAAerwEAAAAAAAAAX+BCgwhnyPA2AQAZAAAEcGNvbnYBEAAAAAAA",
+      "audioDuration": 3,
+      "timestamp": 1700000000000
     }
   ],
-  "directMessages": [],
-  "transactions": [],
+  "directMessages": [
+    {
+      "id": "test-dm-voice-1",
+      "senderId": "user-test",
+      "senderName": "Voice Tester",
+      "senderRole": "normal",
+      "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+      "recipientId": "target-user",
+      "text": "Direct voice note",
+      "audioUrl": "data:audio/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwH/////////FUmpZ+kBAAAAAAAAAB6vAQAAAAAAAABf4EEQc4EwQoWBAhhTgGcB/////////wVIqWfpAQAAAAAAAAAerwEAAAAAAAAAX+BCgwhnyPA2AQAZAAAEcGNvbnYBEAAAAAAA",
+      "audioDuration": 4,
+      "timestamp": 1700000000000,
+      "isDirect": true
+    }
+  ],
+  "transactions": [
+    {
+      "id": "tx-buy-1792746925720",
+      "title": "Cart Purchase: Supercharged Cyber Power Ring",
+      "type": "expense",
+      "amount": -4800,
+      "timestamp": 1792746925720,
+      "counterpartName": "VC Cart Store",
+      "note": "Bought 1x Supercharged Cyber Power Ring with VC Currency"
+    }
+  ],
   "graphPoints": [
     {
       "timeLabel": "Genesis",
@@ -76,6 +175,102 @@
       "value": 75000,
       "timestamp": 1792658637337,
       "change": 25000
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1792746909045-4tvs",
+      "name": "Quantum Aero Laptop",
+      "price": 22000,
+      "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop",
+      "description": "Ultra-sleek titanium laptop with dual aero display.",
+      "category": "Hardware",
+      "stock": 50,
+      "createdBy": "super-admin",
+      "creatorName": "Super Admin",
+      "createdAt": 1792746909045
+    },
+    {
+      "id": "prod-gold-pass",
+      "name": "VC Holographic Gold Pass",
+      "price": 2500,
+      "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+      "description": "Exclusive holographic VIP card with instant lounge access & sparkling badge glow.",
+      "category": "Digital Perks",
+      "stock": 49,
+      "createdBy": "system-super-admin",
+      "creatorName": "Super Admin",
+      "createdAt": 1792728901427
+    },
+    {
+      "id": "prod-cyber-ring",
+      "name": "Supercharged Cyber Power Ring",
+      "price": 4800,
+      "image": "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80",
+      "description": "Titanium cybernetic ring embedded with high-frequency quantum neon glow.",
+      "category": "Hardware",
+      "stock": 24,
+      "createdBy": "system-super-admin",
+      "creatorName": "Super Admin",
+      "createdAt": 1792736101427
+    },
+    {
+      "id": "prod-neural-shades",
+      "name": "Quantum Neural Shades (Aero Edition)",
+      "price": 7200,
+      "image": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&auto=format&fit=crop&q=80",
+      "description": "Aero-glass heads-up display sunglasses with real-time VC ticker and mesh HUD.",
+      "category": "Wearables",
+      "stock": 15,
+      "createdBy": "system-super-admin",
+      "creatorName": "Super Admin",
+      "createdAt": 1792743301427
+    },
+    {
+      "id": "prod-genesis-card",
+      "name": "Titanium Genesis Super Card",
+      "price": 15000,
+      "image": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=80",
+      "description": "Ultra-rare collector piece granting maximum community privileges and cashback.",
+      "category": "Collector",
+      "stock": 10,
+      "createdBy": "system-super-admin",
+      "creatorName": "Super Admin",
+      "createdAt": 1792746901427
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-1792746925721-kh7x",
+      "buyerId": "real-user-1792746917535-ulibs",
+      "buyerName": "Shopper1",
+      "productId": "prod-cyber-ring",
+      "productName": "Supercharged Cyber Power Ring",
+      "productImage": "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80",
+      "price": 4800,
+      "quantity": 1,
+      "totalAmount": 4800,
+      "paymentMethod": "vc_currency",
+      "status": "paid",
+      "timestamp": 1792746925721,
+      "shippingAddress": "Direct Digital Mesh Delivery",
+      "contactNumber": "Verified Phone Network Peer"
+    },
+    {
+      "id": "ord-1792746920799-w3h3",
+      "buyerId": "real-user-1792746917535-ulibs",
+      "buyerName": "Shopper1",
+      "productId": "prod-gold-pass",
+      "productName": "VC Holographic Gold Pass",
+      "productImage": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+      "price": 2500,
+      "quantity": 1,
+      "totalAmount": 2500,
+      "paymentMethod": "cash_on_delivery",
+      "status": "pending_cod",
+      "timestamp": 1792746920799,
+      "shippingAddress": "Suite 404, Tech District",
+      "contactNumber": "+1-555-0199"
     }
   ]
 }

@@ -329,6 +329,136 @@ class SoundEffects {
       // Audio playback failed silently
     }
   }
+
+  // Crisp "Cha-Ching!" Cash Register Sound for Cart & VC Currency Purchases
+  playCashRegister() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+
+      // Mechanical drawer click
+      const click = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      click.type = 'square';
+      click.frequency.setValueAtTime(140, t);
+      clickGain.gain.setValueAtTime(0.08, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      click.connect(clickGain);
+      clickGain.connect(ctx.destination);
+      click.start(t);
+      click.stop(t + 0.05);
+
+      // Bell chime "Ching"
+      const bellFreqs = [1760, 2637, 3520];
+      bellFreqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t + 0.04 + idx * 0.02);
+        gain.gain.setValueAtTime(0.14, t + 0.04 + idx * 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t + 0.04 + idx * 0.02);
+        osc.stop(t + 0.5);
+      });
+    } catch {}
+  }
+
+  // Glassy pop & tone for adding to cart
+  playAddToCart() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(650, t);
+      osc.frequency.exponentialRampToValueAtTime(1300, t + 0.12);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.18);
+    } catch {}
+  }
+
+  // Glorious harp arpeggio when Super Admin creates a new product
+  playProductCreated() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t + i * 0.05);
+        gain.gain.setValueAtTime(0.1, t + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t + i * 0.05);
+        osc.stop(t + i * 0.05 + 0.3);
+      });
+    } catch {}
+  }
+
+  // Cash on Delivery (COD) order confirmed sound
+  playCodConfirm() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [440, 554.37, 659.25].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t + i * 0.08);
+        gain.gain.setValueAtTime(0.09, t + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t + i * 0.08);
+        osc.stop(t + i * 0.08 + 0.38);
+      });
+    } catch {}
+  }
+
+  // Futuristic Warp / Hyper-Sync burst sound for 1 Billion Sync / second
+  playHyperSync() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(2400, t + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.25);
+
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1200, t);
+      filter.Q.setValueAtTime(3, t);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + 0.3);
+    } catch {}
+  }
 }
 
 export const sound = new SoundEffects();
