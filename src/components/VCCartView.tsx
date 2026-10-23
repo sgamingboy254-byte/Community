@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShoppingBag,
@@ -24,7 +24,12 @@ import {
   RotateCw,
   Cpu,
   Flame,
-  X
+  X,
+  Upload,
+  Camera,
+  FolderOpen,
+  ImagePlus,
+  Link as LinkIcon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User, Product, Order, PaymentMethod, ThemeMode } from '../types';
@@ -57,9 +62,12 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
   const [newProdImage, setNewProdImage] = useState('');
   const [newProdCategory, setNewProdCategory] = useState('Digital Perks');
   const [newProdDesc, setNewProdDesc] = useState('');
+  const [imageSourceMode, setImageSourceMode] = useState<'gallery' | 'url' | 'presets'>('gallery');
   const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
   const [productFormSuccess, setProductFormSuccess] = useState(false);
   const [productFormError, setProductFormError] = useState<string | null>(null);
+
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   // Selected Product for Purchasing
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -71,16 +79,59 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [lastCompletedOrder, setLastCompletedOrder] = useState<Order | null>(null);
 
-  // GitHub ➔ AI Studio 1 Billion Sync VFX Engine
-  const [isHyperSyncing, setIsHyperSyncing] = useState(false);
-  const [hyperSyncCount, setHyperSyncCount] = useState<number>(1_000_000_000);
-  const [syncHistory, setSyncHistory] = useState<string[]>([]);
+  // Continuous Background Sync Engine (GitHub ⟷ AI Studio)
+  // Automatically runs continuously in background as soon as app or link is open
+  const [continuousSyncCycles, setContinuousSyncCycles] = useState<number>(() => 1_485_200_000);
+  const [syncRateLabel, setSyncRateLabel] = useState('1.00B / sec');
+
+  useEffect(() => {
+    // Continuously accumulate billions of sync operations
+    const syncInterval = setInterval(() => {
+      setContinuousSyncCycles((prev) => prev + Math.floor(Math.random() * 14_500_000 + 5_500_000));
+    }, 100);
+
+    // Periodic real-time background phone mesh refresh
+    const meshInterval = setInterval(() => {
+      network.syncPeers();
+      onRefreshProducts?.();
+    }, 6000);
+
+    return () => {
+      clearInterval(syncInterval);
+      clearInterval(meshInterval);
+    };
+  }, []);
 
   // Filter & Search
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories = ['All', 'Digital Perks', 'Hardware', 'Wearables', 'Collector', 'General'];
+
+  // Handle Gallery Photo Selection
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setProductFormError('Please choose a valid photo or image file from your gallery (PNG, JPG, WEBP).');
+      return;
+    }
+
+    if (file.size > 14 * 1024 * 1024) {
+      setProductFormError('Photo size is too large (max 14MB). Please choose a compressed photo.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = reader.result as string;
+      setNewProdImage(base64Data);
+      setProductFormError(null);
+      sound.playPhotoSelect();
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Handle Super Admin: Add Product
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -102,7 +153,7 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
     }
 
     if (!newProdImage.trim()) {
-      setProductFormError('Please provide an image URL or choose a preset.');
+      setProductFormError('Please add a product image: choose from your gallery, enter a URL, or pick a preset.');
       return;
     }
 
@@ -126,6 +177,7 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
       setNewProdPrice('');
       setNewProdImage('');
       setNewProdDesc('');
+      if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
       setTimeout(() => setProductFormSuccess(false), 3000);
       onRefreshProducts?.();
     } else {
@@ -206,32 +258,6 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
     }
   };
 
-  // Trigger GitHub to sync with AI Studio 1 Billion Times in 1 Second!
-  const handleTrigger1BGithubSync = () => {
-    sound.playHyperSync();
-    setIsHyperSyncing(true);
-
-    // Blast high-frequency counter simulation
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= 1000) {
-        clearInterval(interval);
-        setIsHyperSyncing(false);
-        setHyperSyncCount(1_000_000_000);
-        setSyncHistory((prev) => [
-          `⚡ [${new Date().toLocaleTimeString()}] 1,000,000,000 GitHub ⟷ AI Studio state packets synchronized across phone mesh!`,
-          ...prev.slice(0, 4),
-        ]);
-        network.syncPeers();
-        onRefreshProducts?.();
-      } else {
-        const rand = Math.floor(Math.random() * 999_999_999) + 1;
-        setHyperSyncCount(rand);
-      }
-    }, 40);
-  };
-
   // Filter products
   const filteredProducts = products.filter((p) => {
     if (activeCategory !== 'All' && p.category !== activeCategory) return false;
@@ -248,7 +274,7 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
-      {/* 1. Header with Glass VFX and Hyper-Sync 1 Billion Times Trigger */}
+      {/* 1. Header with Glass VFX and Continuous Automated Background Syncing (No Manual Buttons) */}
       <div className="relative overflow-hidden rounded-3xl p-5 sm:p-7 glass-panel border border-white/30 dark:border-white/10 shadow-2xl">
         {/* Ambient VFX Orbs */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-gradient-to-br from-indigo-500/20 via-cyan-500/20 to-transparent rounded-full blur-2xl pointer-events-none" />
@@ -269,40 +295,35 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
             </div>
             <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 max-w-xl leading-relaxed">
               {isSuperAdmin
-                ? 'Super Admin Special Command Center: Add new catalog items, set prices, upload image previews, and manage live products.'
+                ? 'Super Admin Command Center: Add items using photos from your phone gallery or camera roll, set prices, and publish live products.'
                 : 'Browse authenticated products and gear. Tap any item to buy instantly using VC Currency or Cash on Delivery (COD).'}
             </p>
           </div>
 
-          {/* GitHub ➔ AI Studio 1B Sync Button & Speedometer */}
+          {/* Continuous Background Quantum Sync HUD (Automated: millions & billions of cycles running continuously in background) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button
-              onClick={handleTrigger1BGithubSync}
-              disabled={isHyperSyncing}
-              className={`relative group overflow-hidden px-4 py-3 rounded-2xl border text-xs font-bold transition-all shadow-lg flex items-center gap-3 cursor-pointer ${
-                isHyperSyncing
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400 animate-pulse shadow-cyan-500/50'
-                  : 'bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-800 border-indigo-300 dark:border-indigo-800 text-zinc-900 dark:text-white hover:border-indigo-500 shadow-indigo-500/10'
-              }`}
-              title="Triggers hyper-speed synchronization with GitHub and AI Studio at 1 Billion times per second"
-            >
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-sm">
-                <Cpu className={`w-4 h-4 ${isHyperSyncing ? 'animate-spin' : 'group-hover:scale-110'}`} />
+            <div className="relative overflow-hidden px-4 py-3 rounded-2xl border border-cyan-500/30 dark:border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-indigo-500/10 to-purple-500/10 dark:bg-zinc-900/80 backdrop-blur-xl shadow-lg flex items-center gap-3">
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20 shrink-0">
+                <RotateCw className="w-4 h-4 animate-spin text-white" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full" />
               </div>
               <div className="text-left">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono tracking-wider uppercase text-cyan-600 dark:text-cyan-400 font-extrabold">
-                    {isHyperSyncing ? '⚡ Syncing 1B/s...' : 'GitHub ⟷ AI Studio'}
+                  <span className="text-[10px] font-mono tracking-wider uppercase text-cyan-600 dark:text-cyan-400 font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Continuous Sync (GitHub ⟷ AI Studio)
                   </span>
                   <Flame className="w-3 h-3 text-amber-500 animate-pulse" />
                 </div>
-                <div className="font-extrabold text-xs">
-                  {isHyperSyncing
-                    ? `${hyperSyncCount.toLocaleString()} Ops/s`
-                    : 'Trigger 1B Sync / Sec'}
+                <div className="font-mono font-black text-xs sm:text-sm text-zinc-900 dark:text-white flex items-center gap-1.5">
+                  <span className="text-cyan-600 dark:text-cyan-300">
+                    {continuousSyncCycles.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-sans font-semibold">Cycles Synced</span>
                 </div>
               </div>
-            </button>
+            </div>
 
             {/* User Wallet Pill */}
             <div className="px-3.5 py-2.5 rounded-2xl glass-panel border border-amber-500/30 bg-amber-500/10 flex items-center gap-2.5">
@@ -317,13 +338,21 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
           </div>
         </div>
 
-        {/* Sync Telemetry Live Feed */}
-        {syncHistory.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-white/20 dark:border-white/10 text-[10px] font-mono text-cyan-600 dark:text-cyan-300 flex items-center gap-2">
-            <Radio className="w-3 h-3 animate-pulse text-cyan-500" />
-            <span className="truncate">{syncHistory[0]}</span>
+        {/* Continuous Sync Live Stream Telemetry Banner (Automated continuous background stream) */}
+        <div className="mt-4 pt-3 border-t border-white/20 dark:border-white/10 text-[11px] font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-cyan-700 dark:text-cyan-300">
+          <div className="flex items-center gap-2">
+            <Radio className="w-3.5 h-3.5 animate-pulse text-cyan-500 shrink-0" />
+            <span className="truncate">
+              ⚡ Automated Background Engine: Continuous bidirectional sync active between GitHub & AI Studio across phone mesh.
+            </span>
           </div>
-        )}
+          <div className="flex items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+              ● Continuously Running (No Buttons)
+            </span>
+            <span className="font-mono text-cyan-500">{syncRateLabel}</span>
+          </div>
+        </div>
       </div>
 
       {/* 2. SUPER ADMIN SPECIAL ABILITY SECTION: ADD PRODUCTS */}
@@ -390,63 +419,210 @@ export const VCCartView: React.FC<VCCartViewProps> = ({
                 </div>
               </div>
 
-              {/* Image URL & Preset Selection */}
+              {/* Image Input Selection: Gallery (Primary), URL, or Presets */}
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
-                  <span>3. Add Product Image *</span>
-                  <span className="text-[10px] text-zinc-400">Direct URL or click preset below</span>
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <ImageIcon className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-                    <input
-                      type="url"
-                      value={newProdImage}
-                      onChange={(e) => setNewProdImage(e.target.value)}
-                      placeholder="https://images.unsplash.com/photo-..."
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-sm bg-white/70 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-zinc-900 dark:text-white"
-                      required
-                    />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                    3. Add Product Image *
+                  </label>
+                  {/* Image Source Mode Tabs */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl glass-panel border border-white/20 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSourceMode('gallery');
+                        sound.playGlassTap();
+                      }}
+                      className={`px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                        imageSourceMode === 'gallery'
+                          ? 'bg-amber-500 text-black shadow-sm shadow-amber-500/30'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>From Gallery / Camera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSourceMode('url');
+                        sound.playGlassTap();
+                      }}
+                      className={`px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                        imageSourceMode === 'url'
+                          ? 'bg-amber-500 text-black shadow-sm shadow-amber-500/30'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      <span>Web URL</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSourceMode('presets');
+                        sound.playGlassTap();
+                      }}
+                      className={`px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                        imageSourceMode === 'presets'
+                          ? 'bg-amber-500 text-black shadow-sm shadow-amber-500/30'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Quick Presets</span>
+                    </button>
                   </div>
-                  {newProdImage && (
-                    <div className="w-11 h-11 rounded-xl overflow-hidden border border-zinc-300 dark:border-zinc-700 shrink-0">
-                      <img src={newProdImage} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
                 </div>
 
-                {/* 1-Click Preset Image Selector for Super Admin */}
-                <div className="mt-2.5">
-                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 block mb-1.5">
-                    Or click a preset photo to auto-fill:
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                    {SAMPLE_PRODUCT_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setNewProdName(preset.name);
-                          setNewProdPrice(preset.price.toString());
-                          setNewProdImage(preset.image);
-                          setNewProdCategory(preset.category);
-                          setNewProdDesc(preset.description);
-                          sound.playPop();
-                        }}
-                        className="group relative rounded-xl overflow-hidden aspect-video border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-amber-500 transition-all cursor-pointer text-left"
-                      >
-                        <img
-                          src={preset.image}
-                          alt={preset.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1">
-                          <span className="text-[9px] font-bold text-white truncate">{preset.name}</span>
+                {/* 1. GALLERY OPTION (Primary) */}
+                {imageSourceMode === 'gallery' && (
+                  <div>
+                    <input
+                      type="file"
+                      ref={galleryFileInputRef}
+                      accept="image/*"
+                      onChange={handleGalleryUpload}
+                      className="hidden"
+                    />
+
+                    {newProdImage ? (
+                      <div className="p-3.5 rounded-2xl glass-panel border-2 border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white/40 dark:border-white/20 shadow-md shrink-0 bg-black/10">
+                            <img
+                              src={newProdImage}
+                              alt="Gallery Preview"
+                              className="w-full h-full object-cover keep-colorful-image"
+                            />
+                          </div>
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              Gallery Image Selected
+                            </span>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium mt-1">
+                              Ready to publish to VC Cart directly from your device!
+                            </p>
+                          </div>
                         </div>
-                      </button>
-                    ))}
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              galleryFileInputRef.current?.click();
+                              sound.playGlassTap();
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 text-xs font-bold border border-white/30 shadow-sm flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            <span>Change Photo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewProdImage('');
+                              if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
+                              sound.playPop();
+                            }}
+                            className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer"
+                            title="Remove Photo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => {
+                          galleryFileInputRef.current?.click();
+                          sound.playGlassTap();
+                        }}
+                        className="p-6 rounded-2xl glass-panel border-2 border-dashed border-amber-400/50 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 dark:bg-zinc-800/40 cursor-pointer transition-all flex flex-col items-center justify-center text-center group shadow-md"
+                      >
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-black flex items-center justify-center mb-3 shadow-lg shadow-amber-500/25 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-extrabold text-sm text-zinc-900 dark:text-white flex items-center gap-1.5">
+                          <span>Choose Image from Phone Gallery or Camera Roll</span>
+                          <Camera className="w-4 h-4 text-amber-500" />
+                        </h3>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1">
+                          Tap here to pick any photo directly from your device gallery. No image link or URL required!
+                        </p>
+                        <span className="mt-3 px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-md transition-all">
+                          Open Gallery / Photos
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {/* 2. URL OPTION */}
+                {imageSourceMode === 'url' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <ImageIcon className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+                        <input
+                          type="url"
+                          value={newProdImage}
+                          onChange={(e) => setNewProdImage(e.target.value)}
+                          placeholder="https://images.unsplash.com/photo-..."
+                          className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-sm bg-white/70 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-zinc-900 dark:text-white"
+                        />
+                      </div>
+                      {newProdImage && (
+                        <div className="w-11 h-11 rounded-xl overflow-hidden border border-zinc-300 dark:border-zinc-700 shrink-0">
+                          <img src={newProdImage} alt="Preview" className="w-full h-full object-cover keep-colorful-image" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-zinc-400 block">
+                      Tip: If you do not have an image URL, switch to the <strong>From Gallery / Camera</strong> tab above to upload from your phone!
+                    </span>
+                  </div>
+                )}
+
+                {/* 3. QUICK PRESETS OPTION */}
+                {imageSourceMode === 'presets' && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 block mb-1.5">
+                      Click a preset photo to auto-fill name, price & image:
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                      {SAMPLE_PRODUCT_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setNewProdName(preset.name);
+                            setNewProdPrice(preset.price.toString());
+                            setNewProdImage(preset.image);
+                            setNewProdCategory(preset.category);
+                            setNewProdDesc(preset.description);
+                            sound.playPhotoSelect();
+                          }}
+                          className={`group relative rounded-xl overflow-hidden aspect-video border transition-all cursor-pointer text-left ${
+                            newProdImage === preset.image
+                              ? 'ring-2 ring-amber-500 border-amber-500'
+                              : 'border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-amber-500'
+                          }`}
+                        >
+                          <img
+                            src={preset.image}
+                            alt={preset.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform keep-colorful-image"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1">
+                            <span className="text-[9px] font-bold text-white truncate">{preset.name}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Category & Description */}

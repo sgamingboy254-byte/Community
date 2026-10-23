@@ -261,8 +261,14 @@ export default function App() {
       }
     });
 
+    // 4. Continuous Automated Background Sync between GitHub & AI Studio across connected nodes
+    const continuousSyncInterval = setInterval(() => {
+      network.syncPeers();
+    }, 7000);
+
     return () => {
       unsubscribe();
+      clearInterval(continuousSyncInterval);
     };
   }, []);
 

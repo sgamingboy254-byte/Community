@@ -58,8 +58,8 @@ class SoundEffects {
         osc.detune.setValueAtTime(pad.detune, t0);
 
         gain.gain.setValueAtTime(0.0001, t0);
-        gain.gain.linearRampToValueAtTime(0.055, t0 + 0.8);
-        gain.gain.setValueAtTime(0.055, t0 + 1.8);
+        gain.gain.linearRampToValueAtTime(0.18, t0 + 0.8);
+        gain.gain.setValueAtTime(0.18, t0 + 1.8);
         gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.6);
 
         osc.connect(gain);
@@ -69,12 +69,12 @@ class SoundEffects {
         osc.stop(t0 + 3.7);
       });
 
-      // Signature Windows 7 Four Chime Notes (G4 -> D5 -> B4 -> C5)
+      // Signature Windows 7 Four Chime Notes (G4 -> D5 -> B4 -> C5) - Louder & Aesthetic
       const win7Chimes = [
-        { time: 0.35, freq: 392.0, dur: 2.0, vol: 0.22, name: 'G4' },
-        { time: 0.72, freq: 587.33, dur: 2.1, vol: 0.24, name: 'D5' },
-        { time: 1.08, freq: 493.88, dur: 2.2, vol: 0.23, name: 'B4' },
-        { time: 1.48, freq: 523.25, dur: 2.8, vol: 0.28, name: 'C5 (Resolve)' },
+        { time: 0.35, freq: 392.0, dur: 2.0, vol: 0.48, name: 'G4' },
+        { time: 0.72, freq: 587.33, dur: 2.1, vol: 0.52, name: 'D5' },
+        { time: 1.08, freq: 493.88, dur: 2.2, vol: 0.50, name: 'B4' },
+        { time: 1.48, freq: 523.25, dur: 2.8, vol: 0.58, name: 'C5 (Resolve)' },
       ];
 
       win7Chimes.forEach((chime) => {
@@ -101,7 +101,7 @@ class SoundEffects {
         osc2.frequency.setValueAtTime(chime.freq * 2, startTime);
 
         gain2.gain.setValueAtTime(0.0001, startTime);
-        gain2.gain.linearRampToValueAtTime(chime.vol * 0.4, startTime + 0.025);
+        gain2.gain.linearRampToValueAtTime(chime.vol * 0.45, startTime + 0.025);
         gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + chime.dur * 0.65);
 
         osc2.connect(gain2);
@@ -117,7 +117,7 @@ class SoundEffects {
           oscShimmer.frequency.setValueAtTime(chime.freq * 3, startTime + 0.05);
 
           gainShimmer.gain.setValueAtTime(0.0001, startTime + 0.05);
-          gainShimmer.gain.linearRampToValueAtTime(0.06, startTime + 0.12);
+          gainShimmer.gain.linearRampToValueAtTime(0.16, startTime + 0.12);
           gainShimmer.gain.exponentialRampToValueAtTime(0.0001, startTime + 2.2);
 
           oscShimmer.connect(gainShimmer);
@@ -135,7 +135,7 @@ class SoundEffects {
       bassOsc.frequency.setValueAtTime(65.41, t0 + 0.1);
 
       bassGain.gain.setValueAtTime(0.0001, t0 + 0.1);
-      bassGain.gain.linearRampToValueAtTime(0.14, t0 + 0.7);
+      bassGain.gain.linearRampToValueAtTime(0.32, t0 + 0.7);
       bassGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
 
       bassOsc.connect(bassGain);
@@ -152,7 +152,7 @@ class SoundEffects {
     this.playWindows7Startup();
   }
 
-  // Ultra-Crisp Futuristic Send Sound (Dual-tone Harmonic Sweep + Soft Pop)
+  // Ultra-Crisp Futuristic Send Sound (Louder & Richer)
   playSend() {
     try {
       const ctx = this.getContext();
@@ -166,7 +166,7 @@ class SoundEffects {
       osc1.frequency.setValueAtTime(523.25, t);
       osc1.frequency.exponentialRampToValueAtTime(1046.5, t + 0.12);
 
-      gain1.gain.setValueAtTime(0.1, t);
+      gain1.gain.setValueAtTime(0.28, t);
       gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
 
       osc1.connect(gain1);
@@ -180,7 +180,7 @@ class SoundEffects {
       osc2.type = 'triangle';
       osc2.frequency.setValueAtTime(1567.98, t + 0.02);
 
-      gain2.gain.setValueAtTime(0.05, t + 0.02);
+      gain2.gain.setValueAtTime(0.18, t + 0.02);
       gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
 
       osc2.connect(gain2);
@@ -192,7 +192,7 @@ class SoundEffects {
     }
   }
 
-  // Lush Triple-Chime Receive Sound (C5 -> E5 -> G5 Marimba Glass Chord)
+  // Lush Triple-Chime Receive Sound (Louder & Fuller Marimba Glass Chord)
   playReceive() {
     try {
       const ctx = this.getContext();
@@ -200,9 +200,9 @@ class SoundEffects {
       const t = ctx.currentTime;
 
       const notes = [
-        { freq: 659.25, time: 0, dur: 0.22, vol: 0.1 },      // E5
-        { freq: 783.99, time: 0.05, dur: 0.26, vol: 0.11 },   // G5
-        { freq: 1046.5, time: 0.11, dur: 0.35, vol: 0.14 },   // C6
+        { freq: 659.25, time: 0, dur: 0.24, vol: 0.28 },      // E5
+        { freq: 783.99, time: 0.05, dur: 0.28, vol: 0.32 },   // G5
+        { freq: 1046.5, time: 0.11, dur: 0.38, vol: 0.38 },   // C6
       ];
 
       notes.forEach((n) => {
@@ -225,7 +225,7 @@ class SoundEffects {
     }
   }
 
-  // Satisfying Bubble Pop for Button Taps and Emoji Reactions
+  // Satisfying Louder Bubble Pop for Button Taps and Emoji Reactions
   playPop() {
     try {
       const ctx = this.getContext();
@@ -235,16 +235,74 @@ class SoundEffects {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, t);
-      osc.frequency.exponentialRampToValueAtTime(400, t + 0.06);
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(440, t + 0.07);
 
-      gain.gain.setValueAtTime(0.09, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+      gain.gain.setValueAtTime(0.26, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.07);
+      osc.stop(t + 0.08);
+    } catch {}
+  }
+
+  // Pure Crystalline Glass Tap (Aesthetic UI Touch)
+  playGlassTap() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1760, t);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.08);
+
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.1);
+    } catch {}
+  }
+
+  // Camera Shutter / Gallery Image Selected Aesthetic Snap
+  playPhotoSelect() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+
+      // Soft mechanical click
+      const click = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      click.type = 'triangle';
+      click.frequency.setValueAtTime(440, t);
+      click.frequency.exponentialRampToValueAtTime(120, t + 0.03);
+      clickGain.gain.setValueAtTime(0.25, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      click.connect(clickGain);
+      clickGain.connect(ctx.destination);
+      click.start(t);
+      click.stop(t + 0.05);
+
+      // Bright aperture chime
+      const chime = ctx.createOscillator();
+      const chimeGain = ctx.createGain();
+      chime.type = 'sine';
+      chime.frequency.setValueAtTime(1318.51, t + 0.04);
+      chime.frequency.exponentialRampToValueAtTime(1760, t + 0.12);
+      chimeGain.gain.setValueAtTime(0.28, t + 0.04);
+      chimeGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      chime.connect(chimeGain);
+      chimeGain.connect(ctx.destination);
+      chime.start(t + 0.04);
+      chime.stop(t + 0.24);
     } catch {}
   }
 
@@ -262,7 +320,7 @@ class SoundEffects {
         osc.frequency.setValueAtTime(freq, t + idx * 0.06);
 
         gain.gain.setValueAtTime(0.001, t + idx * 0.06);
-        gain.gain.linearRampToValueAtTime(0.08, t + idx * 0.06 + 0.015);
+        gain.gain.linearRampToValueAtTime(0.26, t + idx * 0.06 + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.06 + 0.28);
 
         osc.connect(gain);
@@ -273,7 +331,7 @@ class SoundEffects {
     } catch {}
   }
 
-  // Gold Coin Clink for Wallet Grants & Transfers
+  // Gold Coin Clink for Wallet Grants & Transfers (Louder & Brighter)
   playCoin() {
     try {
       const ctx = this.getContext();
@@ -284,16 +342,14 @@ class SoundEffects {
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + i * 0.06);
-        gain.gain.setValueAtTime(0.12, now + i * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
+        gain.gain.setValueAtTime(0.32, now + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now + i * 0.06);
-        osc.stop(now + i * 0.06 + 0.23);
+        osc.stop(now + i * 0.06 + 0.26);
       });
-    } catch {
-      // Audio playback failed silently
-    }
+    } catch {}
   }
 
   // Triumphant Royal Alert for Power Person & Super Admin Events
@@ -307,7 +363,7 @@ class SoundEffects {
         { freq: 440, time: 0, dur: 0.12 },
         { freq: 554.37, time: 0.09, dur: 0.12 },
         { freq: 659.25, time: 0.18, dur: 0.15 },
-        { freq: 880, time: 0.28, dur: 0.38 },
+        { freq: 880, time: 0.28, dur: 0.42 },
       ];
 
       fanfare.forEach((f) => {
@@ -317,7 +373,7 @@ class SoundEffects {
         osc.frequency.setValueAtTime(f.freq, t + f.time);
 
         gain.gain.setValueAtTime(0.001, t + f.time);
-        gain.gain.linearRampToValueAtTime(0.12, t + f.time + 0.02);
+        gain.gain.linearRampToValueAtTime(0.32, t + f.time + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, t + f.time + f.dur);
 
         osc.connect(gain);
@@ -325,9 +381,7 @@ class SoundEffects {
         osc.start(t + f.time);
         osc.stop(t + f.time + f.dur + 0.05);
       });
-    } catch {
-      // Audio playback failed silently
-    }
+    } catch {}
   }
 
   // Crisp "Cha-Ching!" Cash Register Sound for Cart & VC Currency Purchases
@@ -342,12 +396,12 @@ class SoundEffects {
       const clickGain = ctx.createGain();
       click.type = 'square';
       click.frequency.setValueAtTime(140, t);
-      clickGain.gain.setValueAtTime(0.08, t);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      clickGain.gain.setValueAtTime(0.24, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
       click.connect(clickGain);
       clickGain.connect(ctx.destination);
       click.start(t);
-      click.stop(t + 0.05);
+      click.stop(t + 0.06);
 
       // Bell chime "Ching"
       const bellFreqs = [1760, 2637, 3520];
@@ -356,12 +410,12 @@ class SoundEffects {
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, t + 0.04 + idx * 0.02);
-        gain.gain.setValueAtTime(0.14, t + 0.04 + idx * 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        gain.gain.setValueAtTime(0.38, t + 0.04 + idx * 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(t + 0.04 + idx * 0.02);
-        osc.stop(t + 0.5);
+        osc.stop(t + 0.6);
       });
     } catch {}
   }
@@ -378,12 +432,12 @@ class SoundEffects {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(650, t);
       osc.frequency.exponentialRampToValueAtTime(1300, t + 0.12);
-      gain.gain.setValueAtTime(0.12, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.18);
+      osc.stop(t + 0.2);
     } catch {}
   }
 
@@ -398,12 +452,12 @@ class SoundEffects {
         const gain = ctx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, t + i * 0.05);
-        gain.gain.setValueAtTime(0.1, t + i * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.28);
+        gain.gain.setValueAtTime(0.28, t + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.32);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(t + i * 0.05);
-        osc.stop(t + i * 0.05 + 0.3);
+        osc.stop(t + i * 0.05 + 0.35);
       });
     } catch {}
   }
@@ -419,17 +473,17 @@ class SoundEffects {
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, t + i * 0.08);
-        gain.gain.setValueAtTime(0.09, t + i * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
+        gain.gain.setValueAtTime(0.28, t + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.4);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(t + i * 0.08);
-        osc.stop(t + i * 0.08 + 0.38);
+        osc.stop(t + i * 0.08 + 0.42);
       });
     } catch {}
   }
 
-  // Futuristic Warp / Hyper-Sync burst sound for 1 Billion Sync / second
+  // Futuristic Warp / Hyper-Sync burst sound for GitHub ⟷ AI Studio Sync
   playHyperSync() {
     try {
       const ctx = this.getContext();
@@ -443,8 +497,8 @@ class SoundEffects {
       osc.frequency.exponentialRampToValueAtTime(2400, t + 0.15);
       osc.frequency.exponentialRampToValueAtTime(880, t + 0.25);
 
-      gain.gain.setValueAtTime(0.06, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      gain.gain.setValueAtTime(0.24, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
@@ -456,7 +510,7 @@ class SoundEffects {
       gain.connect(ctx.destination);
 
       osc.start(t);
-      osc.stop(t + 0.3);
+      osc.stop(t + 0.32);
     } catch {}
   }
 }
